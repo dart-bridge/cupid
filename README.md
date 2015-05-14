@@ -7,7 +7,6 @@ An easy to use shell application wrapper
 Create your program like this:
 
 ```dart
-
 class MyApp extends Program {
 
   setUp() {
@@ -23,7 +22,6 @@ class MyApp extends Program {
     print('Hello, world!')
   }
 }
-
 ```
 
 To run the program, you need the two first arguments from the `main` function 
@@ -32,9 +30,7 @@ To run the program, you need the two first arguments from the `main` function
 A nice way to do it is like this:
 
 ```dart
-
 main(a, m) => new MyApp().run(a, m);
-
 ```
 
 Note that it is a bad idea to turn the main method into a getter, as it doesn't
