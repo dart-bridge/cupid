@@ -45,7 +45,8 @@ work when called from an isolate. So *DON'T* do `get main => new MyApp().run`.
 The point of having a shell app instead of a standard command line program is that you
 can place things in the memory, and manipulate it through commands. To start up services
 (for example connect to the database, or create an HTTP server), we can place that in the
-`setUp` method. Likewise we can put tear down functionality in `tearDown`.
+`setUp` method. Likewise we can put tear down functionality in `tearDown`, which will be run
+before the program exists after the command *exit* has been run.
 
 ### NOTE
 
@@ -54,4 +55,5 @@ can place things in the memory, and manipulate it through commands. To start up 
 ## Todo
 
 * Command args and flags!
+* Write documentation comments in the code
 * Write some tests
