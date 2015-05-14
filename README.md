@@ -46,11 +46,18 @@ The point of having a shell app instead of a standard command line program is th
 can place things in the memory, and manipulate it through commands. To start up services
 (for example connect to the database, or create an HTTP server), we can place that in the
 `setUp` method. Likewise we can put tear down functionality in `tearDown`, which will be run
-before the program exists after the command *exit* has been run.
+before the program exits after the command *exit* has been run.
 
 ### NOTE
 
 > `tearDown` will not be executed if the program is interrupted with <kbd>^</kbd><kbd>C</kbd>
+
+## Importing a `print`ing library
+
+If your shell app lies in its own library, and simply calls methods from an imported library,
+that imported library should import `package:cupid/print.dart`. Otherwise all messages that
+gets printed in the library potentially messes up the shell prompt. *cupid/print* replaces the
+print function with a smarter one, that correctly renders the message in the console.
 
 ## Todo
 
