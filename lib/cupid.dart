@@ -10,8 +10,8 @@ import 'dart:isolate';
 import 'print.dart';
 export 'print.dart';
 
-part 'Program.dart';
-part 'Shell.dart';
-part 'Input.dart';
-part 'KeyMapper.dart';
-part 'CommandDescriptor.dart';
+part 'program.dart';
+part 'shell.dart';
+part 'input.dart';
+part 'key_mapper.dart';
+part 'command_descriptor.dart';
