@@ -1,0 +1,7 @@
+name: cupid
+description: A shell application wrapper
+version: 0.1.0
+author: Emil Persson <emil.n.persson@gmail.com>
+homepage: http://github.com/emilniklas/cupid
+dependencies:
+  console: 2.2.3
