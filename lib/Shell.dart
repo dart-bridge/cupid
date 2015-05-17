@@ -10,6 +10,15 @@ class Shell {
 
   StreamController _outputController = new StreamController<List<String>>();
 
+  bool _enabled = false;
+
+  bool get enabled => _enabled;
+
+  void set enabled(bool val) {
+    _enabled = val;
+    renderInput();
+  }
+
   Stream get output {
     return _outputController.stream;
   }
@@ -58,7 +67,9 @@ class Shell {
   print(obj) {
     _clearLine();
     stdout.writeln(obj);
-    renderInput();
+    if (enabled) {
+      renderInput();
+    }
   }
 
   stdin(List<int> chars) {

@@ -52,6 +52,8 @@ class Program {
     shell.setUpInput();
 
     _overridePrint();
+
+    shell.enabled = true;
   }
 
   _overridePrint() {
@@ -88,7 +90,7 @@ class Program {
     return method.metadata.any((InstanceMirror e) => e.reflectee is Command);
   }
 
-  _attemptProvidedCommands(List<String> args) {
+  Future _attemptProvidedCommands(List<String> args) async {
     args = args.getRange(0, args.length).toList();
 
     var name = new Symbol(args.removeAt(0));
@@ -97,31 +99,44 @@ class Program {
       MethodMirror method = _program.type.declarations[name];
 
       if (_isCommandMethod(method)) {
-        _program.invoke(name, args);
+        await _program.invoke(name, args);
         return;
       }
     }
     return true;
   }
 
-  _input(List<String> args) async {
+  Future _input(List<String> args) async {
     if (args.isEmpty) return;
+
+    shell.enabled = false;
 
     if (await _attemptBuiltInCommands(args)) {
       if (await _attemptProvidedCommands(args)) {
         print('Invalid command: ${args[0]}');
       }
     }
+    shell.enabled = true;
   }
 
   exitCommand() async {
-    await _letTearDown();
+
+    await _tearDownProcedure();
+
+    exit(0);
+  }
+
+  Future _tearDownProcedure() async {
 
     Console.eraseLine(1);
 
     Console.moveToColumn(0);
 
-    exit(0);
+    await _letTearDown();
+
+    Console.eraseLine(1);
+
+    Console.moveToColumn(0);
   }
 
   _clearCommand() async {
@@ -134,11 +149,7 @@ class Program {
   reload([List<String> args]) async {
     if (args == null) args = [];
 
-    await _letTearDown();
-
-    Console.eraseLine(1);
-
-    Console.moveToColumn(0);
+    await _tearDownProcedure();
 
     var isolate = await Isolate.spawnUri(Platform.script, args, shell.history);
   }
@@ -158,15 +169,15 @@ class Program {
   _letSetUp() async {
     var setUpSymbol = const Symbol('setUp');
 
-    if (_program.type.declarations.containsKey(setUpSymbol)) return _program
+    if (_program.type.declarations.containsKey(setUpSymbol)) return await _program
         .invoke(setUpSymbol, []).reflectee;
   }
 
   _letTearDown() async {
     var setUpSymbol = const Symbol('tearDown');
 
-    if (_program.type.declarations.containsKey(setUpSymbol)) return _program
-        .invoke(setUpSymbol, []);
+    if (_program.type.declarations.containsKey(setUpSymbol)) return await _program
+        .invoke(setUpSymbol, []).reflectee;
   }
 
   run(List<String> arguments, dynamic message) async {
@@ -174,14 +185,12 @@ class Program {
       shell.history.addAll(message);
     }
 
-    _initialEnvironment();
-
     await _letSetUp();
+
+    _initialEnvironment();
 
     _startListening();
 
-    arguments.forEach((String arg) {
-      _input([arg]);
-    });
+    _input(arguments);
   }
 }
