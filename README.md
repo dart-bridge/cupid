@@ -48,13 +48,6 @@ before the program exits after the command *exit* has been run.
 
 > `tearDown` will not be executed if the program is interrupted with <kbd>^</kbd><kbd>C</kbd>
 
-## Importing a `print`ing library
-
-If your shell app lies in its own library, and simply calls methods from an imported library,
-that imported library should import `package:cupid/print.dart`. Otherwise all messages that
-gets printed in the library potentially messes up the shell prompt. *cupid/print* replaces the
-print function with a smarter one, that correctly renders the message in the console.
-
 ## Todo
 
 * Command args and flags!

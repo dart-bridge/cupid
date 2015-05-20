@@ -7,9 +7,6 @@ import 'dart:async';
 import 'dart:math' show max, min;
 import 'dart:isolate';
 
-import 'print.dart';
-export 'print.dart';
-
 part 'program.dart';
 part 'shell.dart';
 part 'input.dart';

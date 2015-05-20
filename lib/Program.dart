@@ -42,7 +42,7 @@ class Program {
     return list;
   }
 
-  _initialEnvironment() {
+  _initialEnvironment(callback()) {
     Console.init();
 
     stdin.lineMode = false;
@@ -51,13 +51,15 @@ class Program {
 
     shell.setUpInput();
 
-    _overridePrint();
+    _overridePrint(callback);
 
     shell.enabled = true;
   }
 
-  _overridePrint() {
-    overridePrintFunction = shell.print;
+  _overridePrint(callback()) {
+    runZoned(callback, zoneSpecification: new ZoneSpecification(
+        print: (self, parent, zone, message) => shell.print(message)
+    ));
   }
 
   _attemptBuiltInCommands(args) async {
@@ -187,10 +189,11 @@ class Program {
 
     await _letSetUp();
 
-    _initialEnvironment();
+    _initialEnvironment(() {
 
-    _startListening();
+      _startListening();
 
-    _input(arguments);
+      _input(arguments);
+    });
   }
 }
