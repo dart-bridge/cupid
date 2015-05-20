@@ -2,7 +2,14 @@ import 'package:cupid/cupid.dart';
 import 'dart:async';
 import 'dart:io';
 
-main(a, m) => new MyApp().run(a, m);
+main(a, m) => new MyApp()
+  ..addCommand(greet)
+  ..run(a, m);
+
+@Command('Greet someone')
+greet(String name) {
+  print('Hello, $name');
+}
 
 class MyApp extends Program {
 
@@ -20,13 +27,33 @@ class MyApp extends Program {
     stop();
   }
 
+  @Command('Throws an exception')
+  trigger() {
+    throw new Exception('This is a sample exception');
+  }
+
+  @Command('Tail the error log in the console')
+  tail() async {
+    var errorFile = new File('cupid_error.log');
+    String contents = await errorFile.readAsString();
+    errorFile.watch().listen((event) async {
+      print('change');
+      var oldContents = contents;
+      contents = await errorFile.readAsString();
+      print(contents.replaceFirst(oldContents, ''));
+    });
+    print('tailing');
+  }
+
   @Command('Start the server')
   Future start() async {
     if (_server != null) {
       return print('The server is already running');
     }
     _server = await HttpServer.bind('localhost', 1337);
-    _server.listen((req) => req.response..write('Det fungerar')..close());
+    _server.listen((req) => req.response
+      ..write('Det fungerar')
+      ..close());
     print('Server started on http://localhost:1337');
   }
 

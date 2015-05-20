@@ -14,7 +14,7 @@ class KeyMapper {
   }
 
   static InputKey keyType(List<int> charCodes) {
-    String stringValue = new String.fromCharCodes(charCodes);
+//    String stringValue = new String.fromCharCodes(charCodes);
 
 //    if ('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!"#€%&/()=?`´+_-:.;,><\'*¨^ '
 //        .split('')

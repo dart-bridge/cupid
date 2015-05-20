@@ -1,17 +1,27 @@
 part of cupid;
 
+IOSink _errorLog = new File('cupid_error.log').openWrite(mode: FileMode.APPEND);
+
 errorHandler(error, StackTrace stack, [Shell shell]) {
 
   Function printer = print;
 
   if (shell != null) printer = shell.print;
 
-  Console.setTextColor(Color.RED.id);
-  printer(stack.toString().split('\n').reversed.join('\n'));
+  String stackString = stack.toString().split('\n').reversed.join('\n');
+
+  String errorString = error.toString().split('\n').join('\n  ');
+
+  String logString = '[${new DateTime.now()}]$stackString\n\n$errorString\n\n';
+
+  _errorLog.add(logString.codeUnits);
+
+//  Console.setTextColor(Color.RED.id);
+//  printer(stackString);
   Console.setTextColor(Color.WHITE.id);
   printer('');
   Console.setBackgroundColor(Color.RED.id);
-  printer('\n  ${error.toString().split('\n').join('\n  ')}\n');
+  printer('\n  $errorString\n');
   Console.resetAll();
   printer('');
 }
@@ -19,7 +29,9 @@ errorHandler(error, StackTrace stack, [Shell shell]) {
 class Program {
   InstanceMirror get _program => reflect(this);
 
-  Shell shell = new Shell();
+  final Shell shell = new Shell();
+
+  final List<ClosureMirror> _addedCommands = [];
 
   void displayHelp() {
     Console.setUnderline(true);
@@ -45,20 +57,21 @@ class Program {
 
   Command _getHelper(MethodMirror commandMethod) {
     return (commandMethod.metadata
-        .firstWhere((e) => e.reflectee is Command)).reflectee;
+    .firstWhere((e) => e.reflectee is Command)).reflectee;
   }
 
   List<MethodMirror> get _allCommands {
     var list = <MethodMirror>[];
 
     _program.type.declarations
-        .forEach((Symbol name, DeclarationMirror declaration) {
+    .forEach((Symbol name, DeclarationMirror declaration) {
       if (declaration is! MethodMirror) return;
 
       if (_isCommandMethod(declaration)) {
         list.add(declaration);
       }
     });
+    list.addAll(_addedCommands.map((m) => m.function));
 
     return list;
   }
@@ -78,7 +91,10 @@ class Program {
   _wrapInZone(callback()) {
     runZoned(callback, zoneSpecification: new ZoneSpecification(
         print: (self, parent, zone, message) => shell.print(message)
-    ), onError: (e,s) => errorHandler(e,s,shell));
+    ), onError: (e, s) {
+      errorHandler(e, s, shell);
+      shell.renderInput();
+    });
   }
 
   _attemptBuiltInCommands(args) async {
@@ -107,7 +123,7 @@ class Program {
     return method.metadata.any((InstanceMirror e) => e.reflectee is Command);
   }
 
-  Future _attemptProvidedCommands(List<String> args) async {
+  Future<bool> _attemptProvidedCommands(List<String> args) async {
     args = args.getRange(0, args.length).toList();
 
     var name = new Symbol(args.removeAt(0));
@@ -117,10 +133,24 @@ class Program {
 
       if (_isCommandMethod(method)) {
         await _program.invoke(name, args);
-        return;
+        return false;
       }
     }
     return true;
+  }
+
+  Future<bool> _attemptAddedCommands(List<String> args) async {
+    for (var closure in _addedCommands) {
+      if (_isCommandMethod(closure.function)) {
+        await closure.apply(args..removeAt(0));
+        return false;
+      }
+    }
+    return true;
+  }
+
+  addCommand(Function commandClosure) {
+    _addedCommands.add(reflect(commandClosure));
   }
 
   Future _input(List<String> args) async {
@@ -130,9 +160,11 @@ class Program {
 
     if (await _attemptBuiltInCommands(args)) {
       if (await _attemptProvidedCommands(args)) {
-        Console.setTextColor(Color.RED.id);
-        print('Invalid command: ${args[0]}\tEnter "help" for details');
-        Console.resetAll();
+        if (await _attemptAddedCommands(args)) {
+          Console.setTextColor(Color.RED.id);
+          print('Invalid command: ${args[0]}\tEnter "help" for details');
+          Console.resetAll();
+        }
       }
     }
     shell.enabled = true;
@@ -189,14 +221,14 @@ class Program {
     var setUpSymbol = const Symbol('setUp');
 
     if (_program.type.declarations.containsKey(setUpSymbol)) return await _program
-        .invoke(setUpSymbol, []).reflectee;
+    .invoke(setUpSymbol, []).reflectee;
   }
 
   _letTearDown() async {
     var setUpSymbol = const Symbol('tearDown');
 
     if (_program.type.declarations.containsKey(setUpSymbol)) return await _program
-        .invoke(setUpSymbol, []).reflectee;
+    .invoke(setUpSymbol, []).reflectee;
   }
 
   run(List<String> arguments, dynamic message) async {
@@ -208,7 +240,7 @@ class Program {
 
       await _letSetUp();
 
-          await _initialEnvironment();
+      await _initialEnvironment();
 
       _startListening();
 
