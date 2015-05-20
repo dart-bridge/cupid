@@ -5,14 +5,15 @@ import 'dart:io';
 main(a, m) => new MyApp().run(a, m);
 
 class MyApp extends Program {
-  bool _serverRunning = false;
+
+  HttpServer _server;
 
   setUp() {
-    print('Set up environment');
+    displayHelp();
+    start();
   }
 
   tearDown() {
-    print('Tear down environment');
     if (watchStreamController != null) {
       watchStreamController.cancel();
     }
@@ -20,20 +21,22 @@ class MyApp extends Program {
   }
 
   @Command('Start the server')
-  start() {
-    if (_serverRunning) {
+  Future start() async {
+    if (_server != null) {
       return print('The server is already running');
     }
-    _serverRunning = true;
-    print('Server started');
+    _server = await HttpServer.bind('localhost', 1337);
+    _server.listen((req) => req.response..write('Det fungerar')..close());
+    print('Server started on http://localhost:1337');
   }
 
   @Command('Stop the server')
-  stop() {
-    if (!_serverRunning) {
+  Future stop() async {
+    if (_server == null) {
       return print('The server is not running, so it cannot be stopped');
     }
-    _serverRunning = false;
+    await _server.close();
+    _server = null;
     print('Server stopped');
   }
 
@@ -44,12 +47,14 @@ class MyApp extends Program {
     var watchDir = new Directory('..').watch(recursive: true);
 
     watchStreamController = watchDir.listen((FileSystemEvent event) {
-      if (event.path.endsWith('.dart')) prog.reload(['watch']);
+      if (event.path.endsWith('.dart')) reload(['watch']);
     });
+    print('Watching the application...');
   }
 
   @Command('Stop watching the application for changes')
   unwatch() async {
     watchStreamController.cancel();
+    print('No longer watching.');
   }
 }

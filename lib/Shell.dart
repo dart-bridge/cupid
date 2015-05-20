@@ -30,7 +30,9 @@ class Shell {
   }
 
   send() {
+    Console.setTextColor(Color.CYAN.id);
     print(prompter() + _currentInput.value);
+    Console.resetAll();
 
     if (_currentInput.value == '') return;
 
@@ -60,7 +62,9 @@ class Shell {
 
   renderInput() {
     _clearLine();
+    Console.setTextColor(Color.CYAN.id);
     stdout.write(prompter() + _currentInput.value);
+    Console.resetAll();
     Console.moveToColumn(_currentInput.currentColumn + 1 + prompter().length);
   }
 
@@ -73,7 +77,7 @@ class Shell {
   }
 
   stdin(List<int> chars) {
-    String value = new String.fromCharCodes(chars);
+    String value = UTF8.decode(chars);
 
     InputKey keyType = KeyMapper.keyType(chars);
 

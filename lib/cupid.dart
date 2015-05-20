@@ -6,6 +6,7 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:math' show max, min;
 import 'dart:isolate';
+import 'dart:convert';
 
 part 'program.dart';
 part 'shell.dart';

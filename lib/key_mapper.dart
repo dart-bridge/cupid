@@ -16,11 +16,11 @@ class KeyMapper {
   static InputKey keyType(List<int> charCodes) {
     String stringValue = new String.fromCharCodes(charCodes);
 
-    if ('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!"#€%&/()=?`´+_-:.;,><\'*¨^ '
-        .split('')
-        .contains(stringValue)) {
-      return InputKey.INPUT;
-    }
+//    if ('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!"#€%&/()=?`´+_-:.;,><\'*¨^ '
+//        .split('')
+//        .contains(stringValue)) {
+//      return InputKey.INPUT;
+//    }
 
     if (_is(charCodes, [10])) return InputKey.RETURN;
     if (_is(charCodes, [27, 91, 65])) return InputKey.UP;
@@ -29,6 +29,6 @@ class KeyMapper {
     if (_is(charCodes, [27, 91, 68])) return InputKey.LEFT;
     if (_is(charCodes, [127])) return InputKey.BACKSPACE;
 
-    return InputKey.UNKNOWN;
+    return InputKey.INPUT;
   }
 }

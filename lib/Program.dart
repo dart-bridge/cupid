@@ -1,12 +1,31 @@
 part of cupid;
 
+errorHandler(error, StackTrace stack, [Shell shell]) {
+
+  Function printer = print;
+
+  if (shell != null) printer = shell.print;
+
+  Console.setTextColor(Color.RED.id);
+  printer(stack.toString().split('\n').reversed.join('\n'));
+  Console.setTextColor(Color.WHITE.id);
+  printer('');
+  Console.setBackgroundColor(Color.RED.id);
+  printer('\n  ${error.toString().split('\n').join('\n  ')}\n');
+  Console.resetAll();
+  printer('');
+}
+
 class Program {
   InstanceMirror get _program => reflect(this);
 
   Shell shell = new Shell();
 
   void displayHelp() {
+    Console.setUnderline(true);
+    Console.setTextColor(Color.CYAN.id);
     print('\nAvailable commands:\n');
+    Console.setUnderline(false);
 
     _allCommands.forEach((MethodMirror commandMethod) {
       var name = MirrorSystem.getName(commandMethod.simpleName);
@@ -20,6 +39,8 @@ class Program {
     print('reload\tRerun the application startup sequence');
 
     print('\nhelp\tDisplay this message\n');
+
+    Console.resetAll();
   }
 
   Command _getHelper(MethodMirror commandMethod) {
@@ -42,7 +63,7 @@ class Program {
     return list;
   }
 
-  _initialEnvironment(callback()) {
+  _initialEnvironment() {
     Console.init();
 
     stdin.lineMode = false;
@@ -51,30 +72,25 @@ class Program {
 
     shell.setUpInput();
 
-    _overridePrint(callback);
-
     shell.enabled = true;
   }
 
-  _overridePrint(callback()) {
+  _wrapInZone(callback()) {
     runZoned(callback, zoneSpecification: new ZoneSpecification(
         print: (self, parent, zone, message) => shell.print(message)
-    ));
+    ), onError: (e,s) => errorHandler(e,s,shell));
   }
 
   _attemptBuiltInCommands(args) async {
     switch (args[0]) {
       case 'exit':
         return await exitCommand();
-        break;
 
       case 'clear':
         return await _clearCommand();
-        break;
 
       case 'reload':
         return await reload();
-        break;
 
       case '?':
       case '-?':
@@ -83,7 +99,6 @@ class Program {
       case '-h':
       case '--help':
         return await _helpCommand();
-        break;
     }
     return true;
   }
@@ -115,7 +130,9 @@ class Program {
 
     if (await _attemptBuiltInCommands(args)) {
       if (await _attemptProvidedCommands(args)) {
-        print('Invalid command: ${args[0]}');
+        Console.setTextColor(Color.RED.id);
+        print('Invalid command: ${args[0]}\tEnter "help" for details');
+        Console.resetAll();
       }
     }
     shell.enabled = true;
@@ -153,7 +170,7 @@ class Program {
 
     await _tearDownProcedure();
 
-    var isolate = await Isolate.spawnUri(Platform.script, args, shell.history);
+    await Isolate.spawnUri(Platform.script, args, shell.history);
   }
 
   _helpCommand() async {
@@ -183,13 +200,15 @@ class Program {
   }
 
   run(List<String> arguments, dynamic message) async {
-    if (message is List<String>) {
-      shell.history.addAll(message);
-    }
+    _wrapInZone(() async {
 
-    await _letSetUp();
+      if (message is List<String>) {
+        shell.history.addAll(message);
+      }
 
-    _initialEnvironment(() {
+      await _letSetUp();
+
+          await _initialEnvironment();
 
       _startListening();
 
