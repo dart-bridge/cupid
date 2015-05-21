@@ -141,6 +141,7 @@ class Program {
 
   Future<bool> _attemptAddedCommands(List<String> args) async {
     for (var closure in _addedCommands) {
+      if (MirrorSystem.getName(closure.function.simpleName) != args[0]) continue;
       if (_isCommandMethod(closure.function)) {
         await closure.apply(args..removeAt(0));
         return false;
