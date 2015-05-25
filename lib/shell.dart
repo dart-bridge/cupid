@@ -24,7 +24,10 @@ class Shell {
   }
 
   _clearLine() {
-    Console.moveToColumn(Console.columns);
+    try {
+      Console.moveToColumn(Console.columns);
+    } on StdoutException {
+    }
     Console.eraseLine(1);
     Console.moveToColumn(0);
   }
