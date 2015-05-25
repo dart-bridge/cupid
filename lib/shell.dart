@@ -62,6 +62,7 @@ class Shell {
 
   renderInput() {
     _clearLine();
+    if (_currentInput == null) return;
     Console.setTextColor(Color.CYAN.id);
     stdout.write(prompter() + _currentInput.value);
     Console.resetAll();
