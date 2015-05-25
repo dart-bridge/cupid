@@ -139,7 +139,8 @@ class Program {
     return true;
   }
 
-  Future<bool> _attemptAddedCommands(List<String> args) async {
+  Future<bool> _attemptAddedCommands(List<String> arguments) async {
+    var args = arguments.toList();
     for (var closure in _addedCommands) {
       if (MirrorSystem.getName(closure.function.simpleName) != args[0]) continue;
       if (_isCommandMethod(closure.function)) {
