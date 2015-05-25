@@ -144,7 +144,8 @@ class Program {
     for (var closure in _addedCommands) {
       if (MirrorSystem.getName(closure.function.simpleName) != args[0]) continue;
       if (_isCommandMethod(closure.function)) {
-        await closure.apply(args..removeAt(0));
+        await closure.apply(args
+          ..removeAt(0));
         return false;
       }
     }
@@ -233,7 +234,8 @@ class Program {
     .invoke(setUpSymbol, []).reflectee;
   }
 
-  run(List<String> arguments, dynamic message) async {
+  run(List<String> args, dynamic message) async {
+    var arguments = args.toList();
     _wrapInZone(() async {
 
       if (message is List<String>) {
@@ -242,9 +244,16 @@ class Program {
 
       await _letSetUp();
 
-      await _initialEnvironment();
+      if (arguments.contains('--production')) {
 
-      _startListening();
+        arguments.remove('--production');
+
+      } else {
+
+        await _initialEnvironment();
+
+        _startListening();
+      }
 
       _input(arguments);
     });
