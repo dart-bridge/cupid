@@ -1,8 +1,3 @@
-# Cupid 0.6.0
-
-## Usage
-
-```dart
 import 'dart:io';
 import 'package:cupid/cupid.dart';
 export 'package:cupid/init.dart';
@@ -48,4 +43,3 @@ externalCommand(Program program) async {
   String name = await program.ask(nameQuestion);
   program.printInfo("Thank you, $name, you're $age years old!");
 }
-```
