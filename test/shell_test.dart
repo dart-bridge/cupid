@@ -3,7 +3,6 @@ export 'package:testcase/init.dart';
 import 'package:cupid/cupid.dart';
 
 class ShellTest implements TestCase {
-
   Shell shell;
 
   setUp() {
@@ -16,6 +15,12 @@ class ShellTest implements TestCase {
   it_executes_commands() async {
     shell.addCommand(functionCommand);
     expect(await shell.execute(#functionCommand), equals('response'));
+  }
+
+  @test
+  it_throws_when_command_is_not_registered() {
+    expect(() => shell.execute(#functionCommand),
+    throwsA(const isInstanceOf<NoSuchCommandException>()));
   }
 
   @test
@@ -48,6 +53,40 @@ class ShellTest implements TestCase {
     var result = await shell.input(new Input(['functionCommandWithNamed', '--input=value']));
     expect(result, equals('value output'));
   }
+
+  @test
+  it_can_describe_a_command() {
+    shell.addCommand(functionCommand);
+    shell.addCommand(ClassCommand);
+    expect(shell.describeCommand(#functionCommand), equals('Test command'));
+    expect(shell.describeCommand(#ClassCommand), equals('Test command'));
+  }
+
+  @test
+  it_can_describe_an_option() {
+    shell.addCommand(functionCommandWithPositional);
+    shell.addCommand(ClassCommandWithPositional);
+    expect(shell.describeOption(#functionCommandWithPositional, #input), equals('An input option'));
+    expect(shell.describeOption(#ClassCommandWithPositional, #input), equals('An input option'));
+  }
+
+  @test
+  it_can_get_the_type_of_an_option() {
+    shell.addCommand(functionCommandWithPositional);
+    shell.addCommand(ClassCommandWithPositional);
+    expect(shell.typeOfOption(#functionCommandWithPositional, #input), equals(String));
+    expect(shell.typeOfOption(#ClassCommandWithPositional, #input), equals(String));
+  }
+
+  @test
+  it_can_get_the_default_value_of_an_option() {
+    shell.addCommand(functionCommandWithPositional);
+    shell.addCommand(functionCommandWithNamed);
+    shell.addCommand(ClassCommandWithNamed);
+    expect(shell.optionDefault(#functionCommandWithPositional, #input), isNull);
+    expect(shell.optionDefault(#functionCommandWithNamed, #input), equals('input'));
+    expect(shell.optionDefault(#ClassCommandWithNamed, #input), equals('input'));
+  }
 }
 
 
@@ -64,11 +103,13 @@ class ClassCommand {
 }
 
 @Command('Test command')
+@Option(#input, 'An input option')
 functionCommandWithPositional(String input) {
   return '$input output';
 }
 
 @Command('Test command')
+@Option(#input, 'An input option')
 class ClassCommandWithPositional {
   String input;
 
@@ -80,15 +121,17 @@ class ClassCommandWithPositional {
 }
 
 @Command('Test command')
-functionCommandWithNamed({String input}) {
+@Option(#input, 'An input option')
+functionCommandWithNamed({String input: 'input'}) {
   return '$input output';
 }
 
 @Command('Test command')
+@Option(#input, 'An input option')
 class ClassCommandWithNamed {
   String input;
 
-  ClassCommandWithNamed({String this.input});
+  ClassCommandWithNamed({String this.input: 'input'});
 
   execute() {
     return '$input output';

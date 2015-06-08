@@ -1,13 +1,24 @@
 part of cupid;
 
 class Command {
-  const Command(String description);
+  final String description;
+  const Command(String this.description);
 }
 
 class Option {
-  const Option(Type type, Symbol name, String description, {defaultValue});
+  final Symbol name;
+  final String description;
+  const Option(Symbol this.name,
+               String this.description);
 }
 
 class Question {
-  const Question(String sentence, {Type type, String match, String message});
+  final String sentence;
+  final Type type;
+  final String match;
+  final String message;
+  const Question(String this.sentence,
+                 {Type this.type,
+                 String this.match,
+                 String this.message});
 }

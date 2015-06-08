@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:cupid/cupid.dart';
-export 'package:cupid/init.dart';
+
+main() {
+  new MyProgram().run();
+}
 
 class MyProgram extends Program {
   HttpServer server;
@@ -14,18 +17,22 @@ class MyProgram extends Program {
   }
 
   @Command('Start the server')
-  @Option(int, #port, 'The port to run the server on', defaultValue: 1337)
-  @Option(String, #host, 'The host to listen to', defaultValue: 'localhost')
-  start({String host, int port}) async {
+  @Option(#port, 'The port to run the server on')
+  @Option(#host, 'The host to listen to')
+  start({String host: 'localhost', int port: 1337}) async {
     server = await HttpServer.bind(host, port);
     server.listen(handleRequests);
-    print('Server is running on ${server.address}');
+    print('Server is running on http://$host:$port');
   }
 
   @Command('Stop the server')
   stop() async {
     await server.close();
     print('Server stopped');
+  }
+
+  void handleRequests(HttpRequest request) {
+    request.response..write('Response')..close();
   }
 }
 

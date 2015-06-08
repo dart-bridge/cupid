@@ -3,7 +3,6 @@ export 'package:testcase/init.dart';
 import 'package:cupid/cupid.dart';
 
 class InputTest implements TestCase {
-
   setUp() {
   }
 
