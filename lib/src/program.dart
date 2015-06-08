@@ -7,19 +7,23 @@ class Program {
   Program() {
     this._io = new ConsoleIoDevice();
     this._shell = new Shell();
-    _init();
   }
 
-  Program.using(IoDevice this._io, Shell this._shell) {
-    _init();
-  }
+  Program.using(IoDevice this._io, Shell this._shell);
 
-  void _init() {
+  Future init() async {
     reflectClass(this.runtimeType).declarations.forEach((k, v) {
       if (v.metadata.any((m) => m.reflectee is Command)) {
         addCommand(reflect(this).getField(k).reflectee);
       }
     });
+    await setUp();
+  }
+
+  Future setUp() async {
+  }
+
+  Future tearDown() async {
   }
 
   ask(Question question) {
@@ -56,6 +60,12 @@ class Program {
   }
 
   Future run() async {
+    await setUp();
+    await _runCycle();
+    await tearDown();
+  }
+
+  Future _runCycle() async {
     try {
       await waitForInput();
     } on InputException catch(e) {
@@ -63,7 +73,7 @@ class Program {
     } on ProgramExitingException {
       return;
     }
-    await run();
+    await _runCycle();
   }
 
   void exit() {
