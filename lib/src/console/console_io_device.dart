@@ -1,7 +1,7 @@
 part of cupid;
 
 class ConsoleIoDevice implements IoDevice {
-  StreamController<List<int>> _stdinController = new StreamController.broadcast();
+  Prompt _prompt = new Prompt();
   var _colors = {
     'reset': [0, 0],
 
@@ -34,18 +34,17 @@ class ConsoleIoDevice implements IoDevice {
     'bgWhite': [47, 49],
   };
 
-  ConsoleIoDevice() {
-    stdin.listen(_stdinController.add);
-  }
-
   Future<Input> input() async {
-    List<int> inputChars = await _stdinController.stream.first;
-    var input = UTF8.decode(inputChars);
+    _prompt.show();
+    String input = await _prompt.input();
+    _prompt.hide();
     return new Input(input.trim().split(' '));
   }
 
   void output(String output) {
+    _prompt.hide();
     stdout.write(output);
+    _prompt.show();
   }
 
   String _colorize(String output) {
@@ -58,5 +57,10 @@ class ConsoleIoDevice implements IoDevice {
 
   void outputInColor(String output) {
     this.output(_colorize(output));
+  }
+
+  void outputError(Object error, StackTrace stack) {
+    outputInColor(
+        '<bgRed><white>\n\n    ${error.toString().split('\n').join('\n    ')}\n</white></bgRed>\n');
   }
 }

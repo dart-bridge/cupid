@@ -50,17 +50,22 @@ class Program {
     });
   }
 
-  Future _zoned(body()) {
-    return runZoned(() {
-      return body();
-    }, zoneSpecification: new ZoneSpecification(
-        print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
-          _io.output(line + '\n');
-        }));
+  Future _zoned(body()) async {
+    try {
+      await runZoned(() {
+        return body();
+      },
+      zoneSpecification: new ZoneSpecification(
+          print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
+            _io.output(line + '\n');
+          }));
+    } catch(e, s) {
+      _io.outputError(e, s);
+    }
   }
 
   Future run() async {
-    await setUp();
+    await init();
     await _runCycle();
     await tearDown();
   }
@@ -68,7 +73,7 @@ class Program {
   Future _runCycle() async {
     try {
       await waitForInput();
-    } on InputException catch(e) {
+    } on InputException catch (e) {
       _io.outputInColor('<red>${e.toString()}</red>\n');
     } on ProgramExitingException {
       return;

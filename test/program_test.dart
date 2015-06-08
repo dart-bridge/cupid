@@ -64,6 +64,9 @@ class MockIoDevice implements IoDevice {
   void outputInColor(String output) {
     wasOutput += output;
   }
+
+  void outputError(error, StackTrace stack) {
+  }
 }
 
 @Command('Example command')
