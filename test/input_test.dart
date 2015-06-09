@@ -36,4 +36,13 @@ class InputTest implements TestCase {
       #flag: true,
     }));
   }
+
+  @test
+  it_can_take_values_with_spaces_if_a_quote_is_present() {
+    var input = new Input(['command', '''--option="value with ' and spaces"''', "--option2='value with spaces'"]);
+    expect(input.namedArguments, equals({
+      #option: "value with ' and spaces",
+      #option2: 'value with spaces',
+    }));
+  }
 }

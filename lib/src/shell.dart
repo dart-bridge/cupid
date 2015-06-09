@@ -84,6 +84,10 @@ class Shell {
                       Map<Symbol, dynamic> namedArguments) {
     if (parameter.isNamed)
       _validateParamValue(parameter, namedArguments.remove(parameter.simpleName));
+    else if (positionalArguments.length == 0) {
+      if (parameter.isOptional) return;
+      throw new InvalidInputException('Argument [${MirrorSystem.getName(parameter.simpleName)}] is required');
+    }
     else
       _validateParamValue(parameter, positionalArguments.removeAt(0));
   }

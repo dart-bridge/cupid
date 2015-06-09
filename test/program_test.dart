@@ -8,11 +8,12 @@ class ProgramTest implements TestCase {
   MockIoDevice io;
   Shell shell;
 
-  setUp() {
+  setUp() async {
     io = new MockIoDevice();
     shell = new Shell();
     program = new Program.using(io, shell);
     io.program = program;
+    await program.init();
   }
 
   tearDown() {
@@ -41,6 +42,21 @@ class ProgramTest implements TestCase {
     expect(io.hasBeenCalledOnce, isTrue);
     expect(io.wasOutput, equals('output\n'));
   }
+
+  @test
+  it_can_display_a_help_screen() async {
+    program.addCommand(command);
+    program.addCommand(inputCommand);
+    await program.execute(#help);
+    expect(io.wasOutput, equals('\n' + '''
+Available commands:
+
+  command                         Example command
+  exit                            Exit the application
+  help [command]                  See a list of all available commands
+  inputCommand argument [--flag]  Test input command
+  '''.trim() + '\n\n'));
+  }
 }
 
 class MockIoDevice implements IoDevice {
@@ -49,7 +65,7 @@ class MockIoDevice implements IoDevice {
   bool hasBeenCalledOnce = false;
   Program program;
 
-  Future<Input> input() async {
+  Future input() async {
     if (hasBeenCalledOnce) {
       program.exit();
     }
@@ -62,10 +78,24 @@ class MockIoDevice implements IoDevice {
   }
 
   void outputInColor(String output) {
-    wasOutput += output;
+    wasOutput += output.replaceAll(new RegExp(r'</?\w+>'), '');
   }
 
   void outputError(error, StackTrace stack) {
+    throw error;
+  }
+
+  Future close() async {
+  }
+
+  Future<String> rawInput() {
+    return input();
+  }
+
+  void setPrompter(Function prompter) {
+  }
+
+  Future setUp() async {
   }
 }
 

@@ -4,12 +4,16 @@ class Input {
   Symbol _command;
   final List positionalArguments = [];
   final Map<Symbol, dynamic> namedArguments = {};
+  String _raw;
 
   Input(List<String> arguments) {
+    _raw = arguments.join(' ');
     _command = new Symbol(arguments.removeAt(0));
     namedArguments.addAll(_parseOptions(arguments.where(_isOption)));
     positionalArguments.addAll(_parsePrimitives(arguments.where(_isNotOption)));
   }
+
+  String get raw => _raw;
 
   bool _isOption(String element) {
     return element.startsWith('-');
@@ -29,14 +33,15 @@ class Input {
 
   Symbol get command => _command;
 
-  _parsePrimitive(String p) {
+  static _parsePrimitive(String p) {
     if (p == '') return true;
+    if (_matches(p, r'''^(['"])[^\1]*\1$''')) return p.substring(1, p.length-1);
     if (_matches(p, r'^\d+$')) return int.parse(p);
     if (_matches(p, r'^\d*[.,]\d+$')) return double.parse(p);
     return p;
   }
 
-  bool _matches(String input, String regExp) {
+  static bool _matches(String input, String regExp) {
     return new RegExp(regExp).hasMatch(input);
   }
 

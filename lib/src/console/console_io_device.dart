@@ -40,7 +40,13 @@ class ConsoleIoDevice implements IoDevice {
 
   Future<Input> input() async {
     String input = await _prompt.input();
-    return new Input(input.trim().split(' '));
+    var parts = <String>[];
+    while(input.isNotEmpty) {
+      var part = new RegExp(r'''^(?:[^\s]+(['"])[^\1]+?\1|([^\s]+))''').firstMatch(input)[0];
+      parts.add(part);
+      input = input.replaceFirst(part, '').trim();
+    }
+    return new Input(parts);
   }
 
   void output(String output) {
@@ -63,6 +69,23 @@ class ConsoleIoDevice implements IoDevice {
 
   void outputError(Object error, StackTrace stack) {
     outputInColor(
+        '<red>${stack.toString().split('\n').reversed.join('\n')}</red>\n'
         '<bgRed><white>\n\n    ${error.toString().split('\n').join('\n    ')}\n</white></bgRed>\n');
+  }
+
+  Future close() {
+    return _prompt.close();
+  }
+
+  Future<String> rawInput() {
+    return _prompt.rawInput();
+  }
+
+  void setPrompter(Function prompter) {
+    _prompt._prompter = prompter;
+  }
+
+  Future setUp() {
+    return _prompt.loadHistory();
   }
 }

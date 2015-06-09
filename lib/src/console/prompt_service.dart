@@ -2,19 +2,22 @@ part of cupid;
 
 class PromptService {
   Prompt _prompt = new Prompt();
-  String prefix = '> ';
   Completer _completer;
   bool _enabled = false;
   int __historyCursor = -1;
   final List<String> _history = [];
   String _stash = '';
   ConsoleIoDevice _device;
+  StreamSubscription _stdinSubscription;
+  bool _highlightInput = true;
+  Function _prompter = () => '> ';
+  File historyFile = new File('.cupid_history');
 
   PromptService(ConsoleIoDevice this._device) {
     Console.init();
     Console.adapter.echoMode = false;
     Console.adapter.lineMode = false;
-    stdin.map((c) => UTF8.decode(c)).listen(_input);
+    _stdinSubscription = stdin.map((c) => UTF8.decode(c)).listen(_input);
   }
 
   int get _historyCursor => __historyCursor;
@@ -27,16 +30,17 @@ class PromptService {
 
   _renderPrompt() {
     Console.moveToColumn(0);
-    stdout.write(_device._colorize('<cyan>$prefix</cyan>${_highlightValue()}'));
+    stdout.write(_device._colorize('${_prompter()}${_highlightValue()}'));
     _repositionCursor();
   }
 
   String _highlightValue() {
+    if (!_highlightInput) return '<magenta>${_prompt.value}</magenta>';
     var value = _prompt.value
     .replaceFirstMapped(new RegExp(r'^(\w+)'), (m) {
       return '<yellow><bold>${m[1]}</bold>';
     })
-    .replaceAllMapped(new RegExp(r'(--?)(\w+)(?:(=)(\w+))?'), (m) {
+    .replaceAllMapped(new RegExp(r'''(--?)(\w+)(?:(=)((['"])([^\4]+)\4|[^\s]+))?'''), (m) {
       var dashes = m[1];
       var key = m[2];
       var equals = m[3] == null ? '' : m[3];
@@ -47,8 +51,12 @@ class PromptService {
     return '$value</yellow>';
   }
 
+  int _prompterLength() {
+    return (_prompter() as String).replaceAll(new RegExp(r'</?[^>]+>'), '').length;
+  }
+
   _clearPrompt() {
-    Console.moveToColumn(prefix.length + _prompt.value.length + 1);
+    Console.moveToColumn(_prompterLength() + _prompt.value.length + 1);
     Console.eraseLine(1);
     Console.moveToColumn(0);
   }
@@ -59,7 +67,7 @@ class PromptService {
   }
 
   _repositionCursor() {
-    Console.moveToColumn(prefix.length + _prompt.cursor + 1);
+    Console.moveToColumn(_prompterLength() + _prompt.cursor + 1);
   }
 
   _input(String char) {
@@ -104,7 +112,10 @@ class PromptService {
     _completer = new Completer();
     _enabled = true;
     _renderPrompt();
+    var updatingPrompter = new Stream.periodic(const Duration(seconds: 1)).listen((_) => _render());
     var input = await _completer.future;
+    await updatingPrompter.cancel();
+    historyFile.openWrite(mode: APPEND).writeln(input);
     _enabled = false;
     _clearPrompt();
     _prompt.clear();
@@ -116,5 +127,21 @@ class PromptService {
     if (_enabled) _clearPrompt();
     stdout.write(output);
     if (_enabled) _renderPrompt();
+  }
+
+  Future close() {
+    return _stdinSubscription.cancel();
+  }
+
+  Future<String> rawInput() async {
+    _highlightInput = false;
+    String raw = await input();
+    _highlightInput = true;
+    return raw;
+  }
+
+  Future loadHistory() async {
+    if (await historyFile.exists())
+      _history.addAll((await historyFile.readAsLines()).reversed);
   }
 }

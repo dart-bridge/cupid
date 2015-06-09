@@ -87,6 +87,19 @@ class ShellTest implements TestCase {
     expect(shell.optionDefault(#functionCommandWithNamed, #input), equals('input'));
     expect(shell.optionDefault(#ClassCommandWithNamed, #input), equals('input'));
   }
+
+  @test
+  it_allows_for_optional_arguments() async {
+    shell.addCommand(functionCommandWithOptional);
+    expect(await shell.execute(#functionCommandWithOptional), isNull);
+    expect(await shell.execute(#functionCommandWithOptional, ['input']), equals('input'));
+  }
+
+  @test
+  it_throws_invalid_input_if_non_optional_param_is_missing() async {
+    shell.addCommand(functionCommandWithPositional);
+    expect(() => shell.execute(#functionCommandWithPositional), throwsA(const isInstanceOf<InvalidInputException>()));
+  }
 }
 
 
@@ -136,4 +149,10 @@ class ClassCommandWithNamed {
   execute() {
     return '$input output';
   }
+}
+
+@Command('Test command')
+@Option(#input, 'An optional input')
+functionCommandWithOptional([String input]) {
+  return input;
 }
