@@ -1,40 +1,35 @@
 part of cupid;
 
 class Prompt {
-  StreamController<String> _controller = new StreamController.broadcast();
-  String _buffer = '';
+  String _value = '';
+  int _cursor = 0;
 
-  Prompt() {
-    stdin.echoMode = false;
-    stdin.lineMode = false;
-    Console.init();
-    stdin.listen(_char);
+  String get value => _value;
+
+  void set value(String value) {
+    _value = value;
+    cursor = value.length;
   }
 
-  _char(List<int> char) {
-    stdout.write(char);
-    if (char[0] == 10) {
-      _controller.add(_buffer);
-      _buffer = '';
-    } else {
-//      _buffer += UTF8.decode(char).trim();
-//      hide();
-//      show();
-    }
+  void append(String char) {
+    _value = value.substring(0, cursor) + char + value.substring(cursor);
+    cursor += char.length;
   }
 
-  hide() {
-    Console.moveToColumn(Console.readLine().length);
-    Console.eraseLine();
-    Console.moveToColumn(0);
+  int get cursor => _cursor;
+
+  void set cursor(int value) {
+    _cursor = max(0, min(_value.length, value));
   }
 
-  show() {
-    stdout.write('> ');
+  void backspace() {
+    if (cursor == 0) return;
+    _value = value.substring(0, cursor - 1)
+    + value.substring(cursor);
+    cursor--;
   }
 
-  Future<String> input() {
-    stdout.write('listening');
-    return _controller.stream.first;
+  void clear() {
+    value = '';
   }
 }

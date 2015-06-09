@@ -1,7 +1,7 @@
 part of cupid;
 
 class ConsoleIoDevice implements IoDevice {
-  Prompt _prompt = new Prompt();
+  PromptService _prompt;
   var _colors = {
     'reset': [0, 0],
 
@@ -34,17 +34,17 @@ class ConsoleIoDevice implements IoDevice {
     'bgWhite': [47, 49],
   };
 
+  ConsoleIoDevice() {
+    _prompt = new PromptService(this);
+  }
+
   Future<Input> input() async {
-    _prompt.show();
     String input = await _prompt.input();
-    _prompt.hide();
     return new Input(input.trim().split(' '));
   }
 
   void output(String output) {
-    _prompt.hide();
-    stdout.write(output);
-    _prompt.show();
+    _prompt.output(output);
   }
 
   String _colorize(String output) {
@@ -56,7 +56,9 @@ class ConsoleIoDevice implements IoDevice {
   }
 
   void outputInColor(String output) {
-    this.output(_colorize(output));
+    this.output(_colorize(output.replaceAllMapped(new RegExp(r'\w+://[^\s]+'), (m) {
+      return '<underline><bold>${m[0]}</bold></underline>';
+    })));
   }
 
   void outputError(Object error, StackTrace stack) {

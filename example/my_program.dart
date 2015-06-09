@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:cupid/cupid.dart';
+import 'dart:async';
 
 main() {
   new MyProgram().run();
@@ -8,7 +9,7 @@ main() {
 class MyProgram extends Program {
   HttpServer server;
 
-  setUp() {
+  setUp() async {
     this.addCommand(externalCommand);
   }
 
@@ -20,9 +21,10 @@ class MyProgram extends Program {
   @Option(#port, 'The port to run the server on')
   @Option(#host, 'The host to listen to')
   start({String host: 'localhost', int port: 1337}) async {
+    await new Future.delayed(const Duration(seconds: 3));
     server = await HttpServer.bind(host, port);
     server.listen(handleRequests);
-    print('Server is running on http://$host:$port');
+    printInfo('Server is running on http://$host:$port');
   }
 
   @Command('Stop the server')

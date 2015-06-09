@@ -12,12 +12,14 @@ class Program {
   Program.using(IoDevice this._io, Shell this._shell);
 
   Future init() async {
-    reflectClass(this.runtimeType).declarations.forEach((k, v) {
-      if (v.metadata.any((m) => m.reflectee is Command)) {
-        addCommand(reflect(this).getField(k).reflectee);
-      }
+    return _zoned(() async {
+      reflectClass(this.runtimeType).declarations.forEach((k, v) {
+        if (v.metadata.any((m) => m.reflectee is Command)) {
+          addCommand(reflect(this).getField(k).reflectee);
+        }
+      });
+      await setUp();
     });
-    await setUp();
   }
 
   Future setUp() async {
@@ -31,7 +33,19 @@ class Program {
   }
 
   printInfo(String info) {
+    _io.outputInColor('<blue>$info</blue>\n');
+  }
 
+  printDanger(String info) {
+    _io.outputInColor('<red>$info</red>\n');
+  }
+
+  printWarning(String info) {
+    _io.outputInColor('<yellow>$info</yellow>\n');
+  }
+
+  printAccomplishment(String info) {
+    _io.outputInColor('<green>$info</green>\n');
   }
 
   void addCommand(command) {
@@ -59,7 +73,11 @@ class Program {
           print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
             _io.output(line + '\n');
           }));
-    } catch(e, s) {
+    } on InputException {
+      rethrow;
+    } on ProgramExitingException {
+      rethrow;
+    } catch (e, s) {
       _io.outputError(e, s);
     }
   }
