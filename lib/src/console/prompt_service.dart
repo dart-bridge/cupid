@@ -15,8 +15,8 @@ class PromptService {
 
   PromptService(ConsoleIoDevice this._device) {
     Console.init();
-    Console.adapter.echoMode = false;
-    Console.adapter.lineMode = false;
+    stdin.echoMode = false;
+    stdin.lineMode = false;
     _stdinSubscription = stdin.map((c) => UTF8.decode(c)).listen(_input);
   }
 

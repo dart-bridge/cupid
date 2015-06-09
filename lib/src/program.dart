@@ -105,14 +105,16 @@ class Program {
     }
   }
 
-  Future run([Input input]) async {
-    try {
-      await _zoned(init);
-      await _zoned(_runCycle);
-      await _exit();
-    } on ProgramReloadingException {
-      await _reload();
-    }
+  Future run([Input input]) {
+    return _zoned(() async {
+      try {
+        await init();
+        await _runCycle();
+        await _exit();
+      } on ProgramReloadingException {
+        await _reload();
+      }
+    });
   }
 
   Future _exit() async {
@@ -151,7 +153,15 @@ class Program {
 
   Future _reload() async {
     await _exit();
-    Isolate.spawnUri(Platform.script, [], null);
+//    await _zoned(() async {
+      Isolate isolate = await Isolate.spawnUri(Platform.script, [], null);
+//    Isolate isolate = await Isolate.spawn(_restart, []);
+//    var port = new ReceivePort();
+//    isolate.addOnExitListener(port.sendPort);
+//    await port.first;
+//    });
+//    Process.run(Platform.executable, [Platform.script.toFilePath()]);
+//    print(await new File.fromUri(Platform.script).readAsString());
   }
 
   @Command('See a list of all available commands')
