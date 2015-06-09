@@ -98,15 +98,21 @@ class Program {
       rethrow;
     } on ProgramExitingException {
       rethrow;
+    } on ProgramReloadingException {
+      rethrow;
     } catch (e, s) {
       _io.outputError(e, s);
     }
   }
 
   Future run([Input input]) async {
-    await _zoned(init);
-    await _zoned(_runCycle);
-    await _exit();
+    try {
+      await _zoned(init);
+      await _zoned(_runCycle);
+      await _exit();
+    } on ProgramReloadingException {
+      await _reload();
+    }
   }
 
   Future _exit() async {
@@ -121,6 +127,8 @@ class Program {
       _io.outputInColor('<red>${e.toString()}</red> <gray>Type \'help\' for details</gray>\n');
     } on ProgramExitingException {
       return;
+    } on ProgramReloadingException {
+      rethrow;
     }
     await _runCycle();
   }
@@ -137,10 +145,13 @@ class Program {
   }
 
   @Command('Restart the application')
-  Future reload() async {
+  Future reload() {
+    throw new ProgramReloadingException();
+  }
+
+  Future _reload() async {
     await _exit();
-    print(Platform.script);
-    await Isolate.spawnUri(Platform.script, [], null);
+    Isolate.spawnUri(Platform.script, [], null);
   }
 
   @Command('See a list of all available commands')
@@ -216,6 +227,9 @@ class Program {
     if (param.isOptional) return '[$name]';
     return name;
   }
+}
+
+class ProgramReloadingException {
 }
 
 class ProgramExitingException {

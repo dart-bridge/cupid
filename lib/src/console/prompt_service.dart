@@ -115,7 +115,9 @@ class PromptService {
     var updatingPrompter = new Stream.periodic(const Duration(seconds: 1)).listen((_) => _render());
     var input = await _completer.future;
     await updatingPrompter.cancel();
-    historyFile.openWrite(mode: APPEND).writeln(input);
+    var sink = historyFile.openWrite(mode: APPEND)
+      ..writeln(input);
+      await sink.close();
     _enabled = false;
     _clearPrompt();
     _prompt.clear();
