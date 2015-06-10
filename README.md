@@ -25,15 +25,16 @@ class MyProgram extends Program {
   start({String host: 'localhost', int port: 1337}) async {
     server = await HttpServer.bind(host, port);
     server.listen((r) => r.response.write('Response'));
-    print('Server is running on ${server.address}');
+    printInfo('Server is running on http://$host:$port');
   }
 
   @Command('Stop the server')
   stop() async {
+    if (server == null) return;
     await server.close();
-    print('Server stopped');
+    printInfo('Server stopped');
   }
-  
+
   @Command('Ask some questions')
   questions() async {
     var ageQuestion = const Question('How old are you?', type: int);

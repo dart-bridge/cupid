@@ -53,10 +53,10 @@ Available commands:
 
   clear                           Clear the terminal screen
   command                         Example command
-  exit                            Exit the application
+  exit                            Exit the program
   help [command]                  See a list of all available commands
   inputCommand argument [--flag]  Test input command
-  reload                          Restart the application
+  reload                          Restart the program
   '''.trim() + '\n\n'));
   }
 }

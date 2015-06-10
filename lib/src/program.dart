@@ -114,12 +114,12 @@ class Program {
       } on ProgramReloadingException {
         await _reload();
       }
+      await _io.close();
     });
   }
 
   Future _exit() async {
     await _zoned(tearDown);
-    await _io.close();
   }
 
   Future _runCycle() async {
@@ -141,27 +141,22 @@ class Program {
     Console.moveCursor(row: 0, column: 0);
   }
 
-  @Command('Exit the application')
+  @Command('Exit the program')
   void exit() {
     throw new ProgramExitingException();
   }
 
-  @Command('Restart the application')
-  Future reload() {
+  @Command('Restart the program')
+  Future reload() async {
     throw new ProgramReloadingException();
   }
 
   Future _reload() async {
     await _exit();
-//    await _zoned(() async {
-      Isolate isolate = await Isolate.spawnUri(Platform.script, [], null);
-//    Isolate isolate = await Isolate.spawn(_restart, []);
-//    var port = new ReceivePort();
-//    isolate.addOnExitListener(port.sendPort);
-//    await port.first;
-//    });
-//    Process.run(Platform.executable, [Platform.script.toFilePath()]);
-//    print(await new File.fromUri(Platform.script).readAsString());
+    Isolate isolate = await Isolate.spawnUri(Platform.script, [], null);
+    var port = new ReceivePort();
+    isolate.addOnExitListener(port.sendPort);
+    await port.first;
   }
 
   @Command('See a list of all available commands')
