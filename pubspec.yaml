@@ -3,7 +3,7 @@ description: A shell application wrapper
 version: 0.6.0
 author: Emil Persson <emil.n.persson@gmail.com>
 homepage: http://github.com/emilniklas/cupid
-dependencies:
+dependencies: 
   console: '>=2.2.3 <3.0.0'
 dev_dependencies:
   test: '>=0.12.3 <0.13.0'
