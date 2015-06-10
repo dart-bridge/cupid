@@ -84,6 +84,10 @@ class PromptService {
       return _repositionCursor();
     }
     else if (char == new String.fromCharCodes([127])) _prompt.backspace();
+    else if (char == new String.fromCharCodes([24])) {
+      _prompt.value = 'exit';
+      return _send();
+    }
     else if (char == new String.fromCharCodes([9])) _prompt.autocomplete(_program._shell._commands.keys.map(MirrorSystem.getName), _program);
     else if (char == '\n') return _send();
     else _prompt.append(char.replaceAll('\n', ' '));
@@ -119,7 +123,7 @@ class PromptService {
     await updatingPrompter.cancel();
     var sink = historyFile.openWrite(mode: APPEND)
       ..writeln(input);
-      await sink.close();
+    await sink.close();
     _enabled = false;
     _clearPrompt();
     _prompt.clear();
