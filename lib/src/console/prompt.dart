@@ -32,4 +32,30 @@ class Prompt {
   void clear() {
     value = '';
   }
+
+  void autocomplete(List<String> commands, Program program) {
+    var autocompletable = commands.where((c) => c.startsWith(value)).toList();
+    if (autocompletable.length == 0) return null;
+    if (autocompletable.length == 1) return value = autocompletable[0];
+    String commonBeginning = _commonBeginning(autocompletable);
+    if (commonBeginning == value) program.execute(new Input(['help']));
+    else value = commonBeginning;
+    return null;
+  }
+
+  String _commonBeginning(Iterable<String> all) {
+    var longest = _longestOf(all);
+    var out = '';
+    for (var i = 0; i<longest.length;i++) {
+      var char = longest[i];
+      if (all.every((s) => s[i] == char))
+        out += char;
+      else return out;
+    }
+    return out;
+  }
+
+  String _longestOf(Iterable<String> all) {
+    return (all.toList()..sort((String a, String b) => a.length.compareTo(b.length))).first;
+  }
 }

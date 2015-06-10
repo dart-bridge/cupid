@@ -34,8 +34,8 @@ class ConsoleIoDevice implements IoDevice {
     'bgWhite': [47, 49],
   };
 
-  ConsoleIoDevice() {
-    _prompt = new PromptService(this);
+  ConsoleIoDevice(Program program) {
+    _prompt = new PromptService(program, this);
   }
 
   Future<Input> input() async {

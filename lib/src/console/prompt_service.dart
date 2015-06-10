@@ -12,8 +12,9 @@ class PromptService {
   bool _highlightInput = true;
   Function _prompter = () => '> ';
   File historyFile = new File('.cupid_history');
+  Program _program;
 
-  PromptService(ConsoleIoDevice this._device) {
+  PromptService(Program this._program, ConsoleIoDevice this._device) {
     Console.init();
     stdin.echoMode = false;
     stdin.lineMode = false;
@@ -83,6 +84,7 @@ class PromptService {
       return _repositionCursor();
     }
     else if (char == new String.fromCharCodes([127])) _prompt.backspace();
+    else if (char == new String.fromCharCodes([9])) _prompt.autocomplete(_program._shell._commands.keys.map(MirrorSystem.getName), _program);
     else if (char == '\n') return _send();
     else _prompt.append(char.replaceAll('\n', ' '));
     if (_historyCursor == -1) _stash = _prompt.value;

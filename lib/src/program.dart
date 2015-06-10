@@ -12,7 +12,7 @@ class Program {
   ProgramState _state = ProgramState.running;
 
   Program({IoDevice io, Shell shell}) {
-    this._io = io == null ? new ConsoleIoDevice() : io;
+    this._io = io == null ? new ConsoleIoDevice(this) : io;
     this._shell = shell == null ? new Shell() : shell;
   }
 

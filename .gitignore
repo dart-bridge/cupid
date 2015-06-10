@@ -2,3 +2,4 @@
 packages
 .cupid_history
 cupid.log
+pubspec.lock
