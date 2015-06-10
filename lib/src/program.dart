@@ -11,12 +11,10 @@ class Program {
   Shell _shell;
   ProgramState _state = ProgramState.running;
 
-  Program() {
-    this._io = new ConsoleIoDevice();
-    this._shell = new Shell();
+  Program({IoDevice io, Shell shell}) {
+    this._io = io == null ? new ConsoleIoDevice() : io;
+    this._shell = shell == null ? new Shell() : shell;
   }
-
-  Program.using(IoDevice this._io, Shell this._shell);
 
   Future init() async {
     _allDeclarations(reflectClass(this.runtimeType)).forEach((k, v) {
@@ -80,9 +78,9 @@ class Program {
     _shell.addCommand(command);
   }
 
-  Future execute(Symbol command) {
+  Future execute(Input command) {
     return _zoned(() {
-      return _shell.execute(command);
+      return _shell.input(command);
     });
   }
 
@@ -96,7 +94,8 @@ class Program {
     var zoneCompleter = new Completer();
     runZoned(() async {
       var result = await body();
-      zoneCompleter.complete(result);
+      if (!zoneCompleter.isCompleted)
+        zoneCompleter.complete(result);
     },
     zoneSpecification: new ZoneSpecification(
         print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
@@ -110,21 +109,24 @@ class Program {
       else if (e is ProgramReloadingException)
         _state = ProgramState.reloading;
       else
-        _io.outputError(e, s);
-      zoneCompleter.complete(null);
+        _io.outputError(e, new Chain.forTrace(s));
+      if (!zoneCompleter.isCompleted)
+        zoneCompleter.complete(null);
     });
     return zoneCompleter.future;
   }
 
   Future run([Input input]) {
-    return _zoned(() async {
-      await init();
-      await _runCycle();
-      if (_state == ProgramState.exiting)
-        await _exit();
-      if (_state == ProgramState.reloading)
-        await _reload();
-      await _io.close();
+    return Chain.capture(() {
+      return _zoned(() async {
+        await init();
+        await _runCycle();
+        if (_state == ProgramState.exiting)
+          await _exit();
+        if (_state == ProgramState.reloading)
+          await _reload();
+        await _io.close();
+      });
     });
   }
 

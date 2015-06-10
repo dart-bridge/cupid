@@ -7,7 +7,7 @@ abstract class IoDevice {
 
   Future<Input> input();
 
-  void outputError(error, StackTrace stack);
+  void outputError(error, Chain stack);
 
   Future close();
 

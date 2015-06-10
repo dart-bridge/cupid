@@ -11,7 +11,7 @@ class ProgramTest implements TestCase {
   setUp() async {
     io = new MockIoDevice();
     shell = new Shell();
-    program = new Program.using(io, shell);
+    program = new Program(io: io, shell: shell);
     io.program = program;
     await program.init();
   }
@@ -22,7 +22,7 @@ class ProgramTest implements TestCase {
   @test
   it_pipes_the_output_of_a_command_to_an_output_dependency() async {
     program.addCommand(command);
-    await program.execute(#command);
+    await program.execute(new Input(['command']));
     expect(io.wasOutput, equals('output\n'));
   }
 
@@ -47,7 +47,7 @@ class ProgramTest implements TestCase {
   it_can_display_a_help_screen() async {
     program.addCommand(command);
     program.addCommand(inputCommand);
-    await program.execute(#help);
+    await program.execute(new Input(['help']));
     expect(io.wasOutput, equals('\n' + '''
 Available commands:
 
@@ -83,7 +83,7 @@ class MockIoDevice implements IoDevice {
     wasOutput += output.replaceAll(new RegExp(r'</?\w+>'), '');
   }
 
-  void outputError(error, StackTrace stack) {
+  void outputError(error, stack) {
     throw error;
   }
 

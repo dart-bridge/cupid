@@ -67,9 +67,9 @@ class ConsoleIoDevice implements IoDevice {
     })));
   }
 
-  void outputError(Object error, StackTrace stack) {
+  void outputError(Object error, Chain stack) {
     outputInColor(
-        '<red>${stack.toString().split('\n').reversed.join('\n')}</red>\n'
+        '<red>${stack.terse.toString().split('\n').reversed.join('\n')}</red>\n'
         '<bgRed><white>\n\n    ${error.toString().split('\n').join('\n    ')}\n</white></bgRed>\n');
   }
 
