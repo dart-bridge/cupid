@@ -1,8 +1,15 @@
 part of cupid;
 
+enum ProgramState {
+  running,
+  exiting,
+  reloading,
+}
+
 class Program {
   IoDevice _io;
   Shell _shell;
+  ProgramState _state = ProgramState.running;
 
   Program() {
     this._io = new ConsoleIoDevice();
@@ -86,34 +93,37 @@ class Program {
   }
 
   Future _zoned(body()) async {
-    try {
-      await runZoned(() {
-        return body();
-      },
-      zoneSpecification: new ZoneSpecification(
-          print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
-            _io.output(line + '\n');
-          }));
-    } on InputException {
-      rethrow;
-    } on ProgramExitingException {
-      rethrow;
-    } on ProgramReloadingException {
-      rethrow;
-    } catch (e, s) {
-      _io.outputError(e, s);
-    }
+    var zoneCompleter = new Completer();
+    runZoned(() async {
+      var result = await body();
+      zoneCompleter.complete(result);
+    },
+    zoneSpecification: new ZoneSpecification(
+        print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
+          _io.output(line + '\n');
+        }),
+    onError: (e, s) {
+      if (e is InputException)
+        _io.outputInColor('<red>${e.toString()}</red> <gray>Type \'help\' for details</gray>\n');
+      else if (e is ProgramExitingException)
+        _state = ProgramState.exiting;
+      else if (e is ProgramReloadingException)
+        _state = ProgramState.reloading;
+      else
+        _io.outputError(e, s);
+      zoneCompleter.complete(null);
+    });
+    return zoneCompleter.future;
   }
 
   Future run([Input input]) {
     return _zoned(() async {
-      try {
-        await init();
-        await _runCycle();
+      await init();
+      await _runCycle();
+      if (_state == ProgramState.exiting)
         await _exit();
-      } on ProgramReloadingException {
+      if (_state == ProgramState.reloading)
         await _reload();
-      }
       await _io.close();
     });
   }
@@ -123,16 +133,9 @@ class Program {
   }
 
   Future _runCycle() async {
-    try {
-      await waitForInput();
-    } on InputException catch (e) {
-      _io.outputInColor('<red>${e.toString()}</red> <gray>Type \'help\' for details</gray>\n');
-    } on ProgramExitingException {
-      return;
-    } on ProgramReloadingException {
-      rethrow;
-    }
-    await _runCycle();
+    await waitForInput();
+    if (_state == ProgramState.running)
+      await _runCycle();
   }
 
   @Command('Clear the terminal screen')
@@ -238,5 +241,4 @@ class ProgramReloadingException {
 }
 
 class ProgramExitingException {
-
 }
