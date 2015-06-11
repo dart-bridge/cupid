@@ -59,6 +59,12 @@ Available commands:
   reload                          Restart the program
   '''.trim() + '\n\n'));
   }
+
+  @test
+  it_can_execute_shell_commands() async {
+    await program.execute(new Input([':echo', 'Hello']));
+    expect(io.wasOutput, equals('Hello\n'));
+  }
 }
 
 class MockIoDevice implements IoDevice {

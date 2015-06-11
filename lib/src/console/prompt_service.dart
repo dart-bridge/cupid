@@ -48,6 +48,9 @@ class PromptService {
       var value = m[4] == null ? '' : m[4];
       var valueColor = new RegExp(r'^[0-9.]+$').hasMatch(value) ? 'magenta' : 'green';
       return '</yellow><gray>$dashes</gray><red>$key</red><gray>$equals</gray><$valueColor><italic>$value</italic></$valueColor><yellow>';
+    })
+    .replaceFirstMapped(new RegExp(r'^:(.*)$'), (m) {
+      return '<gray>:</gray><italic>${m[1]}</italic>';
     });
     return '$value</yellow>';
   }

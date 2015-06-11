@@ -80,13 +80,25 @@ class Program {
 
   Future execute(Input command) {
     return _zoned(() {
+      if (command.raw.startsWith(':'))
+        return _executeExternalShell(command);
       return _shell.input(command);
     });
   }
 
+  Future _executeExternalShell(Input command) async {
+    var arguments = command.raw.substring(1).split(' ');
+    var name = arguments.removeAt(0);
+    Process process = await Process.start(name, arguments);
+    var stdoutSubscription = process.stdout.map(UTF8.decode).listen(_io.output);
+    var stderrSubscription = process.stderr.map(UTF8.decode).listen(_io.output);
+    await stdoutSubscription.asFuture();
+//    await stderrSubscription.asFuture();
+  }
+
   Future waitForInput() {
     return _zoned(() async {
-      return _shell.input(await _io.input());
+      return execute(await _io.input());
     });
   }
 
