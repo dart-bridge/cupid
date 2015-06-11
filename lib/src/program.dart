@@ -91,9 +91,8 @@ class Program {
     var name = arguments.removeAt(0);
     Process process = await Process.start(name, arguments);
     var stdoutSubscription = process.stdout.map(UTF8.decode).listen(_io.output);
-    var stderrSubscription = process.stderr.map(UTF8.decode).listen(_io.output);
+    process.stderr.map(UTF8.decode).listen(_io.output);
     await stdoutSubscription.asFuture();
-//    await stderrSubscription.asFuture();
   }
 
   Future waitForInput() {
