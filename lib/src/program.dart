@@ -130,12 +130,20 @@ class Program {
   Future run([Input input]) {
     return Chain.capture(() {
       return _zoned(() async {
-        await init();
-        await _runCycle();
-        if (_state == ProgramState.exiting)
+        try {
+          await init();
+          await _runCycle();
+          if (_state == ProgramState.exiting)
+            await _exit();
+          if (_state == ProgramState.reloading)
+            await _reload();
+        } on ProgramExitingException {
           await _exit();
-        if (_state == ProgramState.reloading)
+        } on ProgramReloadingException {
           await _reload();
+        } catch (e) {
+          printDanger('Initialization failed.\n$e');
+        }
         await _io.close();
       });
     });
