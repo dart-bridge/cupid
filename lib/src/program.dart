@@ -10,6 +10,8 @@ class Program {
   IoDevice _io;
   Shell _shell;
   ProgramState _state = ProgramState.running;
+  List<Input> _initialInputs;
+  ProgramReloadingException _reloadPending;
 
   Program({IoDevice io, Shell shell}) {
     this._io = io == null ? new ConsoleIoDevice(this) : io;
@@ -86,6 +88,11 @@ class Program {
     });
   }
 
+  Future executeAll(List<Input> commands) async {
+    for (var command in commands)
+      await execute(command);
+  }
+
   Future _executeExternalShell(Input command) async {
     var arguments = command.raw.substring(1).split(' ');
     var name = arguments.removeAt(0);
@@ -117,9 +124,10 @@ class Program {
         _io.outputInColor('<red>${e.toString()}</red> <gray>Type \'help\' for details</gray>\n');
       else if (e is ProgramExitingException)
         _state = ProgramState.exiting;
-      else if (e is ProgramReloadingException)
+      else if (e is ProgramReloadingException) {
         _state = ProgramState.reloading;
-      else
+        _reloadPending = e;
+      } else
         _io.outputError(e, new Chain.forTrace(s));
       if (!zoneCompleter.isCompleted)
         zoneCompleter.complete(null);
@@ -127,26 +135,35 @@ class Program {
     return zoneCompleter.future;
   }
 
-  Future run([Input input]) {
+  Future run([List<String> arguments = const []]) {
+    List<Input> inputs = _parseInitialArguments(arguments);
+    _initialInputs = inputs;
     return Chain.capture(() {
       return _zoned(() async {
         try {
           await init();
+          executeAll(inputs);
           await _runCycle();
           if (_state == ProgramState.exiting)
             await _exit();
           if (_state == ProgramState.reloading)
-            await _reload();
+            await _reload(_reloadPending == null ? null : _reloadPending.arguments);
         } on ProgramExitingException {
           await _exit();
-        } on ProgramReloadingException {
-          await _reload();
+        } on ProgramReloadingException catch(e) {
+          await _reload(e.arguments);
         } catch (e) {
           printDanger('Initialization failed.\n$e');
         }
         await _io.close();
       });
     });
+  }
+
+  List<Input> _parseInitialArguments(List<String> arguments) {
+    var asString = arguments.join(' ');
+    var eachInputAsString = asString.split(new RegExp(r'\s*,\s*'));
+    return eachInputAsString.map((inputString) => new Input(inputString.split(' '))).toList();
   }
 
   Future _exit() async {
@@ -171,13 +188,18 @@ class Program {
   }
 
   @Command('Restart the program')
-  Future reload() async {
-    throw new ProgramReloadingException();
+  Future reload([List<String> arguments]) async {
+    arguments = arguments != null ? arguments : _getInitialInputsRaw();
+    throw new ProgramReloadingException(arguments);
   }
 
-  Future _reload() async {
+  List<String> _getInitialInputsRaw() {
+    return _initialInputs != null ? _initialInputs.map((i) => i.raw).join(', ').split(' ').toList() : [];
+  }
+
+  Future _reload([List<String> arguments = const []]) async {
     await _exit();
-    Isolate isolate = await Isolate.spawnUri(Platform.script, [], null);
+    Isolate isolate = await Isolate.spawnUri(Platform.script, arguments, null);
     var port = new ReceivePort();
     isolate.addOnExitListener(port.sendPort);
     await port.first;
@@ -259,6 +281,8 @@ class Program {
 }
 
 class ProgramReloadingException {
+  List<String> arguments;
+  ProgramReloadingException([List<String> this.arguments]);
 }
 
 class ProgramExitingException {
