@@ -56,7 +56,7 @@ Available commands:
   exit                            Exit the program
   help [command]                  See a list of all available commands
   inputCommand argument [--flag]  Test input command
-  reload                          Restart the program
+  reload [arguments]              Restart the program
   '''.trim() + '\n\n'));
   }
 

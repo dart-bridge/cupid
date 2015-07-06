@@ -6,6 +6,7 @@ class InputException {
 
 class NoSuchCommandException extends InputException {
   final Symbol command;
+
   const NoSuchCommandException(Symbol this.command);
 
   String toString() {
@@ -15,6 +16,7 @@ class NoSuchCommandException extends InputException {
 
 class InvalidInputException extends InputException {
   final String message;
+
   const InvalidInputException(String this.message);
 
   String toString() {
@@ -37,27 +39,39 @@ class Shell {
   }
 
   Future execute(Symbol command,
-                 [List positionalArguments,
-                 Map<Symbol, dynamic> namedArguments]) {
-    if (positionalArguments == null) positionalArguments = [];
-    if (namedArguments == null) namedArguments = <Symbol, dynamic>{};
+                 [List positionalArguments = const [],
+                 Map<Symbol, dynamic> namedArguments = const {}]) {
 
     var commandMirror = _validInput(command, positionalArguments, namedArguments);
 
     if (commandMirror is ClosureMirror)
       return _executeFunction(
           commandMirror,
-          positionalArguments,
+          _getPositional(positionalArguments, (commandMirror as ClosureMirror).function.parameters).toList(),
           namedArguments);
+
+    ClassMirror classMirror = reflectType(commandMirror.reflectee);
     return _executeClass(
-        reflectType(commandMirror.reflectee),
-        positionalArguments,
+        classMirror,
+        _getPositional(positionalArguments, (classMirror.declarations[classMirror.simpleName] as MethodMirror).parameters).toList(),
         namedArguments);
   }
 
+  Iterable _getPositional(List positionalArguments, List<ParameterMirror> parameters) sync* {
+    positionalArguments = positionalArguments.toList();
+    for(var parameter in parameters) {
+      if (parameter.type.isAssignableTo(reflectType(Iterable))) {
+        yield positionalArguments.toList();
+        break;
+      } else if (positionalArguments.isEmpty && parameter.isOptional) {
+        break;
+      } else yield positionalArguments.removeAt(0);
+    }
+  }
+
   InstanceMirror _validInput(Symbol command,
-                            List positionalArguments,
-                            Map<Symbol, dynamic> namedArguments) {
+                             List positionalArguments,
+                             Map<Symbol, dynamic> namedArguments) {
     if (!_commands.containsKey(command)) throw new NoSuchCommandException(command);
     var mirror = _commands[command];
     _validateInput(_commandMethod(mirror), positionalArguments, namedArguments);
@@ -65,8 +79,8 @@ class Shell {
   }
 
   void _validateInput(MethodMirror commandMethod,
-                    List positionalArguments,
-                    Map<Symbol, dynamic> namedArguments) {
+                      List positionalArguments,
+                      Map<Symbol, dynamic> namedArguments) {
     var positional = new List.from(positionalArguments);
     var named = new Map.from(namedArguments);
     for (var param in commandMethod.parameters) {
@@ -88,17 +102,24 @@ class Shell {
       if (parameter.isOptional) return;
       throw new InvalidInputException('Argument [${MirrorSystem.getName(parameter.simpleName)}] is required');
     }
-    else
-      _validateParamValue(parameter, positionalArguments.removeAt(0));
+    else {
+      var argument;
+      if (parameter.type.isAssignableTo(reflectType(Iterable))) {
+        argument = positionalArguments.toList();
+        positionalArguments.clear();
+      } else
+        argument = positionalArguments.removeAt(0);
+      _validateParamValue(parameter, argument);
+    }
   }
 
   void _validateParamValue(ParameterMirror parameter, Object value) {
     var name = MirrorSystem.getName(parameter.simpleName);
     if (value == null && !parameter.isOptional)
       throw new InvalidInputException('Parameter [$name] is obligatory');
-    if (value != null && value.runtimeType != parameter.type.reflectedType)
+    if (value != null && !reflectType(value.runtimeType).isAssignableTo(parameter.type))
       throw new InvalidInputException(
-          'Parameter [$name] must be of type [${parameter.type.reflectedType}]');
+          'Parameter [$name] must be [${parameter.type.reflectedType}]');
   }
 
   Future _executeClass(ClassMirror classMirror, List positional, Map named) async {

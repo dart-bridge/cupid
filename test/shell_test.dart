@@ -100,6 +100,12 @@ class ShellTest implements TestCase {
     shell.addCommand(functionCommandWithPositional);
     expect(() => shell.execute(#functionCommandWithPositional), throwsA(const isInstanceOf<InvalidInputException>()));
   }
+
+  @test
+  it_supports_a_rest_like_signature() async {
+    shell.addCommand(functionCommandWithListArgument);
+    expect(await shell.execute(#functionCommandWithListArgument, ['one', 'two', 'three']), equals(['one', 'two', 'three']));
+  }
 }
 
 
@@ -154,5 +160,11 @@ class ClassCommandWithNamed {
 @Command('Test command')
 @Option(#input, 'An optional input')
 functionCommandWithOptional([String input]) {
+  return input;
+}
+
+@Command('Test command')
+@Option(#input, 'A list input')
+functionCommandWithListArgument([List<String> input]) {
   return input;
 }

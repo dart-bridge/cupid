@@ -161,6 +161,7 @@ class Program {
   }
 
   List<Input> _parseInitialArguments(List<String> arguments) {
+    if (arguments.isEmpty) return [];
     var asString = arguments.join(' ');
     var eachInputAsString = asString.split(new RegExp(r'\s*,\s*'));
     return eachInputAsString.map((inputString) => new Input(inputString.split(' '))).toList();
