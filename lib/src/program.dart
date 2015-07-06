@@ -189,8 +189,8 @@ class Program {
   }
 
   @Command('Restart the program')
-  Future reload([List<String> arguments]) async {
-    arguments = arguments != null ? arguments : _getInitialInputsRaw();
+  Future reload([List<String> arguments = const []]) async {
+    arguments = arguments.length > 0 ? arguments : _getInitialInputsRaw();
     throw new ProgramReloadingException(arguments);
   }
 
