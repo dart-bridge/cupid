@@ -105,6 +105,9 @@ class MockIoDevice implements IoDevice {
 
   Future setUp() async {
   }
+
+  Future abortInput() async {
+  }
 }
 
 @Command('Example command')

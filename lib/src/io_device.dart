@@ -7,6 +7,8 @@ abstract class IoDevice {
 
   Future<Input> input();
 
+  Future abortInput();
+
   void outputError(error, Chain stack);
 
   Future close();

@@ -34,4 +34,7 @@ class LogIoDevice implements IoDevice {
   Future setUp() async {
     _sink = new File('cupid.log').openWrite(mode: APPEND);
   }
+
+  Future abortInput() async {
+  }
 }

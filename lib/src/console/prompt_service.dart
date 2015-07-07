@@ -122,16 +122,25 @@ class PromptService {
     _enabled = true;
     _renderPrompt();
     var updatingPrompter = new Stream.periodic(const Duration(seconds: 1)).listen((_) => _render());
-    var input = await _completer.future;
-    await updatingPrompter.cancel();
-    var sink = historyFile.openWrite(mode: APPEND)
-      ..writeln(input);
-    await sink.close();
-    _enabled = false;
-    _clearPrompt();
-    _prompt.clear();
-    _clearPrompt();
-    return input;
+    var input;
+
+    clean() async {
+      await updatingPrompter.cancel();
+      _enabled = false;
+      _clearPrompt();
+      _prompt.clear();
+      _clearPrompt();
+    }
+    try {
+      input = await _completer.future;
+      historyFile.openWrite(mode: APPEND)
+        ..writeln(input)
+        ..close();
+      await clean();
+      return input;
+    } on CancelInputException {
+      await clean();
+    }
   }
 
   void output(String output) {
@@ -155,4 +164,12 @@ class PromptService {
     if (await historyFile.exists())
       _history.addAll((await historyFile.readAsLines()).reversed);
   }
+
+  Future abortInput() async {
+    if (!_completer.isCompleted)
+      _completer.completeError(new CancelInputException());
+  }
+}
+
+class CancelInputException {
 }

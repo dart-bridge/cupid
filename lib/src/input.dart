@@ -8,7 +8,7 @@ class Input {
 
   Input(List<String> arguments) {
     arguments = arguments.toList();
-    if (arguments.length == 0) throw new InvalidInputException('Empty input');
+    if (arguments.length == 0) throw new EmptyInputException();
     _raw = arguments.join(' ');
     _command = new Symbol(arguments.removeAt(0));
     namedArguments.addAll(_parseOptions(arguments.where(_isOption)));
@@ -58,4 +58,7 @@ class Input {
   List<String> _optionParts(String option) {
     return new RegExp(r'^--?([^=]+)=?(.*)$').firstMatch(option).groups([1, 2]);
   }
+}
+
+class EmptyInputException {
 }

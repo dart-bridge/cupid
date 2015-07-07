@@ -40,6 +40,7 @@ class ConsoleIoDevice implements IoDevice {
 
   Future<Input> input() async {
     String input = await _prompt.input();
+    if (input == null) return null;
     var parts = <String>[];
     while(input.isNotEmpty) {
       var part = new RegExp(r'''^(?:[^\s]+(['"])[^\1]+?\1|([^\s]+))''').firstMatch(input)[0];
@@ -87,5 +88,9 @@ class ConsoleIoDevice implements IoDevice {
 
   Future setUp() {
     return _prompt.loadHistory();
+  }
+
+  Future abortInput() {
+    return _prompt.abortInput();
   }
 }

@@ -104,7 +104,9 @@ class Program {
 
   Future waitForInput() {
     return _zoned(() async {
-      return execute(await _io.input());
+      var input = await _io.input();
+      if (input != null)
+        return execute(input);
     });
   }
 
@@ -119,14 +121,17 @@ class Program {
         print: (Zone self, ZoneDelegate parent, Zone zone, String line) {
           _io.output(line + '\n');
         }),
-    onError: (e, s) {
+    onError: (e, s) async {
       if (e is InputException)
         _io.outputInColor('<red>${e.toString()}</red> <gray>Type \'help\' for details</gray>\n');
-      else if (e is ProgramExitingException)
+      else if (e is EmptyInputException) {}
+      else if (e is ProgramExitingException) {
         _state = ProgramState.exiting;
-      else if (e is ProgramReloadingException) {
+        await _io.abortInput();
+      } else if (e is ProgramReloadingException) {
         _state = ProgramState.reloading;
         _reloadPending = e;
+        await _io.abortInput();
       } else
         _io.outputError(e, new Chain.forTrace(s));
       if (!zoneCompleter.isCompleted)
@@ -150,7 +155,7 @@ class Program {
             await _reload(_reloadPending == null ? null : _reloadPending.arguments);
         } on ProgramExitingException {
           await _exit();
-        } on ProgramReloadingException catch(e) {
+        } on ProgramReloadingException catch (e) {
           await _reload(e.arguments);
         } catch (e) {
           printDanger('Initialization failed.\n$e');
@@ -163,7 +168,7 @@ class Program {
   List<Input> _parseInitialArguments(List<String> arguments) {
     if (arguments.join('').trim() == '') return [];
     var asString = arguments.join(' ');
-    var eachInputAsString = asString.split(new RegExp(r'\s*,\s*'));
+    var eachInputAsString = asString.split(new RegExp(r'\s*,\s*')).where((s) => s.trim() != '');
     return eachInputAsString.map((inputString) => new Input(inputString.split(' '))).toList();
   }
 
@@ -283,6 +288,7 @@ class Program {
 
 class ProgramReloadingException {
   List<String> arguments;
+
   ProgramReloadingException([List<String> this.arguments]);
 }
 
