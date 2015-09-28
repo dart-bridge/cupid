@@ -25,7 +25,7 @@ class Program {
       await executeAll(bootArguments
           .split(',')
           .map((a) => new Input(a.trim())))
-          .forEach(_shell._outputDevice.output);
+          .forEach((o) => o != null ? _shell._outputDevice.output : null);
     return _shell.run(execute);
   }
 
@@ -55,10 +55,21 @@ class Program {
 
   void addCommand(command) {
     ClosureMirror method = reflect(command);
-    _commands[method.function.simpleName] =
-        (p, n) => method
-        .apply(p, n)
-        .reflectee;
+    if (_isRestMethod(method))
+      _commands[method.function.simpleName] =
+          (p, n) => method
+          .apply([p], n)
+          .reflectee;
+    else
+      _commands[method.function.simpleName] =
+          (p, n) => method
+          .apply(p, n)
+          .reflectee;
+  }
+
+  bool _isRestMethod(ClosureMirror method) {
+    return method.function.parameters.where((p) => !p.isNamed).length == 1
+    && method.function.parameters[0].type.isSubtypeOf(reflectType(List));
   }
 
   Future ask(Question question) async {
@@ -81,13 +92,27 @@ class Program {
   // Built in commands
   @Command('Exit the program')
   Future exit() async {
-    _shell.stop();
+    await _shell.stop();
     await tearDown();
   }
 
   @Command('Show help screen')
   help() {
     _commands.keys.forEach(print);
+  }
+
+  @Command('Exit and restart the program')
+  Future reload([List<String> arguments]) async {
+    await tearDown();
+    final args = arguments ?? [];
+    final port = new ReceivePort();
+    await Isolate.spawnUri(
+        Platform.script,
+        args,
+        null,
+        onExit: port.sendPort);
+    await port.first;
+    await _shell.stop();
   }
 }
 

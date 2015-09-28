@@ -36,6 +36,15 @@ class ProgramTest implements TestCase {
     expect(output.log, contains('x, 1, 1.2, two words\n'));
   }
 
+  @test
+  it_allows_a_command_to_receive_the_positional_arguments_as_a_list() async {
+    program.addCommand(mockCommandWithRest);
+
+    await program.execute(new Input('mockCommandWithRest a b c'));
+
+    expect(output.log, contains('3: [a, b, c]\n'));
+  }
+
   @Command('')
   mockCommand() {
     program.print('out');
@@ -45,6 +54,11 @@ class ProgramTest implements TestCase {
   mockCommandWithArguments(String first, int second,
       {double third, String fourth}) {
     program.print('$first, $second, $third, $fourth');
+  }
+
+  @Command('')
+  mockCommandWithRest(List<String> arguments) {
+    program.print('${arguments.length}: $arguments');
   }
 }
 

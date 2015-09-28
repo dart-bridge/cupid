@@ -22,7 +22,6 @@ class Shell {
     await _inputDevice.open();
     _runShell(runner);
     await _programCompleter.future;
-    await _inputDevice.close();
   }
 
   Future _runShell(Future<Output> runner(Input input)) async {
@@ -59,7 +58,8 @@ class Shell {
     return new Output('<red>$exception</red>\n');
   }
 
-  void stop() {
+  Future stop() async {
+    await _inputDevice.close();
     _programCompleter.complete();
   }
 }

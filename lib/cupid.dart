@@ -4,6 +4,7 @@ import 'dart:mirrors';
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert' show UTF8;
+import 'dart:isolate';
 
 part 'src/shell.dart';
 
