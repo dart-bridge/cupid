@@ -7,12 +7,16 @@ class Shell {
 
   Shell([InputDevice inputDevice, OutputDevice outputDevice])
       :
-        _inputDevice = inputDevice != null ? inputDevice : stdout.hasTerminal
+        _inputDevice = inputDevice != null ? inputDevice : _isCapable()
             ? new TerminalInputDevice()
             : new StdInputDevice(),
-        _outputDevice = outputDevice != null ? outputDevice : stdout.hasTerminal
+        _outputDevice = outputDevice != null ? outputDevice : _isCapable()
             ? new TerminalOutputDevice()
             : new StdOutputDevice();
+
+  static bool _isCapable() {
+    return stdout.hasTerminal && !Platform.isWindows;
+  }
 
   Future run(Future<Output> runner(Input input)) async {
     await _inputDevice.open();
