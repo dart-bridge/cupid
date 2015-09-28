@@ -36,11 +36,8 @@ class Input {
   }
 
   _inferType(String element) {
-    if (new RegExp(r'^\d+$').hasMatch(element))
-      return int.parse(element);
-
     if (new RegExp(r'^[\d.]+$').hasMatch(element))
-      return double.parse(element);
+      return num.parse(element);
 
     return element;
   }
@@ -53,7 +50,7 @@ class Input {
   }
 
   List _everyNamed() {
-    return new RegExp(r'''--?(\w+)=?(?:(["'])(.*)\2|(\w+))?''')
+    return new RegExp(r'''--?(\w+)=?(?:(["'])(.*)\2|([\w.]+))?''')
         .allMatches(_raw)
         .map((Match $) {
       final name = $[1];

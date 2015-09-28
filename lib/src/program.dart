@@ -1,7 +1,10 @@
 part of cupid;
 
+typedef Future Invoker(List positional, Map<Symbol, dynamic> named);
+
 class Program {
   final Shell _shell;
+  final Map<Symbol, Invoker> _commands = {};
 
   Program([Shell shell])
       : _shell = shell ?? new Shell();
@@ -17,8 +20,11 @@ class Program {
   }
 
   Future<Output> execute(Input input) async {
-    await new Future.delayed(const Duration(seconds: 2));
-    return new Output('<red>EXECUTE</red> $input\n');
+    final returnValue = await _commands[input.command]
+    (input.positionalArguments, input.namedArguments);
+    if (returnValue == null)
+      return null;
+    return new Output('$returnValue');
   }
 
   Stream<Output> executeAll(Iterable<Input> inputs) async* {
@@ -31,7 +37,9 @@ class Program {
   Future tearDown() async {}
 
   void addCommand(command) {
-
+    ClosureMirror method = reflect(command);
+    _commands[method.function.simpleName] =
+        (p, n) => method.apply(p, n).reflectee;
   }
 
   Future ask(Question question) async {

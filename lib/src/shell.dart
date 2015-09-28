@@ -7,10 +7,10 @@ class Shell {
 
   Shell([InputDevice inputDevice, OutputDevice outputDevice])
       :
-        _inputDevice = inputDevice ?? stdout.hasTerminal
+        _inputDevice = inputDevice != null ? inputDevice : stdout.hasTerminal
             ? new TerminalInputDevice()
             : new StdInputDevice(),
-        _outputDevice = outputDevice ?? stdout.hasTerminal
+        _outputDevice = outputDevice != null ? outputDevice : stdout.hasTerminal
             ? new TerminalOutputDevice()
             : new StdOutputDevice();
 

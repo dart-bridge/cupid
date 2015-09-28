@@ -12,4 +12,6 @@ class StaticInputDevice implements InputDevice {
   }
 
   Future close() async {}
+
+  Future open() async {}
 }

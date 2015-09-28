@@ -28,10 +28,11 @@ class InputTest implements TestCase {
 
   @test
   it_infers_types() {
-    final input = new Input('x abc 123 1.2');
+    final input = new Input('x abc 123 1.2 --f=2.3');
 
     expect(input.command, equals(#x));
     expect(input.positionalArguments, equals(['abc', 123, 1.2]));
+    expect(input.namedArguments, equals({#f: 2.3}));
   }
 
   @test
