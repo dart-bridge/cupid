@@ -36,7 +36,7 @@ class Input {
   }
 
   _inferType(String element) {
-    if (new RegExp(r'^[\d.]+$').hasMatch(element))
+    if (new RegExp(r'^(\d+|\d*\.\d+)$').hasMatch(element))
       return num.parse(element);
 
     return element;
