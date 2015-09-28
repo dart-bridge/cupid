@@ -1,4 +1,4 @@
-# Cupid 0.6.0
+# Cupid 0.9.0
 
 ## Usage
 
@@ -6,7 +6,7 @@
 import 'dart:io';
 import 'package:cupid/cupid.dart';
 
-main() => new MyProgram().run();
+main(args) => new MyProgram().run(args.join(' '));
 
 class MyProgram extends Program {
   HttpServer server;
@@ -20,9 +20,9 @@ class MyProgram extends Program {
   }
 
   @Command('Start the server')
-  @Option(#port, 'The port to run the server on')
-  @Option(#host, 'The host to listen to')
-  start({String host: 'localhost', int port: 1337}) async {
+  start(
+  {@Option('The port to run the server on') String host: 'localhost', 
+  @Option('The host to listen to') int port: 1337}) async {
     server = await HttpServer.bind(host, port);
     server.listen((r) => r.response.write('Response'));
     printInfo('Server is running on http://$host:$port');
@@ -41,7 +41,7 @@ class MyProgram extends Program {
     var nameQuestion = const Question(
         "What's your name?",
         match: r'^[A-Z][a-z]+$',
-        message: 'Only first name, please.');
+     
 
     int age = await ask(ageQuestion);
     printInfo('Great! Now I know your age!');
