@@ -3,8 +3,11 @@ library cupid;
 import 'dart:mirrors';
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' show min, max;
 import 'dart:convert' show UTF8;
 import 'dart:isolate';
+
+import 'package:console/console.dart';
 
 part 'src/shell.dart';
 
@@ -27,6 +30,7 @@ part 'src/input/std_input_device.dart';
 part 'src/input/static_input_device.dart';
 
 part 'src/input/terminal_input_device.dart';
+part 'src/input/terminal_prompt.dart';
 
 part 'src/output/file_output_device.dart';
 
