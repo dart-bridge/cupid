@@ -21,9 +21,10 @@ class Program {
 
   Future run([String bootArguments]) async {
     await setUp();
-    if (bootArguments != null && bootArguments != '')
+    if (bootArguments != null)
       await executeAll(bootArguments
           .split(',')
+          .where((a) => a.trim() != '')
           .map((a) => new Input(a.trim())))
           .forEach((o) => o != null ? _shell._outputDevice.output : null);
     return _shell.run(execute);
@@ -68,8 +69,10 @@ class Program {
   }
 
   bool _isRestMethod(ClosureMirror method) {
-    return method.function.parameters.where((p) => !p.isNamed).length == 1
-    && method.function.parameters[0].type.isSubtypeOf(reflectType(List));
+    return method.function.parameters
+        .where((p) => !p.isNamed)
+        .length == 1
+        && method.function.parameters[0].type.isSubtypeOf(reflectType(List));
   }
 
   Future ask(Question question) async {
