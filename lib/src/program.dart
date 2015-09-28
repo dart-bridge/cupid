@@ -5,6 +5,7 @@ typedef Future Invoker(List positional, Map<Symbol, dynamic> named);
 class Program {
   final Shell _shell;
   final Map<Symbol, Invoker> _commands = {};
+  final List<MethodMirror> _commandDeclarations = [];
 
   Program([Shell shell])
       : _shell = shell ?? new Shell() {
@@ -31,6 +32,8 @@ class Program {
   }
 
   Future<Output> execute(Input input) async {
+    if (input.toString().startsWith(':'))
+      return _executeExternal(input.toString().substring(1));
     if (!_commands.containsKey(input.command))
       throw new UnknownCommandException(input);
     final command = _commands[input.command];
@@ -43,6 +46,15 @@ class Program {
     } on NoSuchMethodError {
       throw new CommandMismatchException(input);
     }
+  }
+
+  Future _executeExternal(String command) async {
+    final args = command.split(' ');
+    final process = await Process.start(args.removeAt(0), args);
+    await process.stdout.map(UTF8.decode).listen(stdout.write).asFuture();
+    final exitCode = await process.exitCode;
+    if (exitCode != 0)
+      printDanger('Exited with exit code $exitCode!');
   }
 
   Stream<Output> executeAll(Iterable<Input> inputs) async* {
@@ -66,6 +78,7 @@ class Program {
           (p, n) => method
           .apply(p, n)
           .reflectee;
+    _commandDeclarations.add(method.function);
   }
 
   bool _isRestMethod(ClosureMirror method) {
@@ -100,12 +113,55 @@ class Program {
   }
 
   @Command('Show help screen')
-  help() {
-    _commands.keys.forEach(print);
+  help([@Option('Search for help') String term]) {
+    if (term == null)
+      _helpAll();
+    else if (_commands.keys.any((s) => MirrorSystem.getName(s) == term))
+      _helpCommand(term);
+    else
+      _narrow(term);
+  }
+
+  void _helpAll() {
+    print('''
+<underline><yellow>Available commands:</yellow></underline>
+
+${_commandDeclarations.map(_describeCommand).map((f) => '  $f').join('\n')}
+    '''.trim() + '\n');
+  }
+
+  String _describeCommand(MethodMirror command) {
+    final List<String> parts = [];
+    parts.add('<yellow>${MirrorSystem.getName(command.simpleName)}</yellow>');
+    if (command.parameters.isNotEmpty)
+      parts.add(command.parameters.map(_describePositional).join(' '));
+    return parts.join(' ');
+  }
+
+  String _describePositional(ParameterMirror param) {
+    var description =
+    '<cyan>${MirrorSystem.getName(param.simpleName)}</cyan>='
+        '<gray>${param.type.reflectedType}';
+    if (param.isNamed)
+      description = '--$description';
+    else if (param.isOptional)
+      description = '[$description]';
+    return '<gray>$description</gray>';
+  }
+
+  void _helpCommand(String command) {
+  }
+
+  void _narrow(String term) {
+    print(_commandDeclarations
+        .where((m) => MirrorSystem.getName(m.simpleName).startsWith(term))
+        .map(_describeCommand)
+        .join('\n'));
   }
 
   @Command('Exit and restart the program')
-  Future reload([List<String> arguments]) async {
+  Future reload([@Option(
+      'Boot arguments for the new instance') List<String> arguments]) async {
     await tearDown();
     final args = arguments ?? [];
     final port = new ReceivePort();

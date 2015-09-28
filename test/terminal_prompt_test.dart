@@ -6,7 +6,7 @@ class TerminalPromptTest implements TestCase {
   TerminalPrompt terminalPrompt;
 
   setUp() {
-    terminalPrompt = new TerminalPrompt();
+    terminalPrompt = new TerminalPrompt(['']);
   }
 
   tearDown() {}
@@ -35,5 +35,13 @@ class TerminalPromptTest implements TestCase {
     expect(terminalPrompt.cursor, equals(0));
     terminalPrompt.cursor += 4;
     expect(terminalPrompt.cursor, equals(3));
+  }
+
+  @test
+  it_has_a_history() {
+    terminalPrompt.input('x');
+    terminalPrompt.flush();
+    terminalPrompt.previous();
+    expect(terminalPrompt.flush(), equals('x'));
   }
 }

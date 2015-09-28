@@ -14,10 +14,16 @@ const Map<Symbol, List<int>> _keys = const {
 class TerminalInputDevice implements InputDevice {
   Stream<String> _stdin;
   StreamSubscription _stdinSubscription;
-  TerminalPrompt _prompt = new TerminalPrompt();
+  TerminalPrompt _prompt;
   bool _open = false;
 
   Future open() async {
+    File historyFile = new File('.cupid_history');
+    if (!await historyFile.exists())
+      await historyFile.writeAsString('');
+    _prompt = new TerminalPrompt(
+        (await historyFile.readAsString()).split('\n'),
+        historyFile.openWrite(mode: FileMode.APPEND));
     Console.init();
     final c = new StreamController<String>.broadcast();
     stdin.echoMode = false;
@@ -25,23 +31,34 @@ class TerminalInputDevice implements InputDevice {
     _stdin = c.stream.asBroadcastStream();
     _stdinSubscription = stdin.listen((bytes) {
       if (!_open) return;
-      _updatePrompt(bytes, () {
-        _write('\n');
-        c.add(_prompt.flush());
-      }, {
-        #up: _onUp,
-        #left: _onLeft,
-        #right: _onRight,
-        #down: _onDown,
-        #backspace: _onBackspace,
-        #tab: _onTab,
-        #delete: _onDelete,
-      });
+      _updatePrompt(bytes,
+          onEnter: () {
+            _write('\n');
+            c.add(_prompt.flush());
+          },
+          onTab: () {
+            _write('\n');
+            c.add('help ${_prompt._content
+                .split(' ')
+                .first}'.trim());
+          },
+          keyCallbacks: {
+            #up: _onUp,
+            #left: _onLeft,
+            #right: _onRight,
+            #down: _onDown,
+            #backspace: _onBackspace,
+            #delete: _onDelete,
+          });
     });
   }
 
   void _onUp() {
-    print('UP');
+    _prompt.previous();
+  }
+
+  void _onDown() {
+    _prompt.next();
   }
 
   void _onLeft() {
@@ -52,10 +69,6 @@ class TerminalInputDevice implements InputDevice {
     _prompt.cursor++;
   }
 
-  void _onDown() {
-    print('DOWN');
-  }
-
   void _onBackspace() {
     _prompt.backspace();
   }
@@ -64,13 +77,10 @@ class TerminalInputDevice implements InputDevice {
     _prompt.forwardspace();
   }
 
-  void _onTab() {
-    print('HELP');
-  }
-
-  void _updatePrompt(List<int> bytes, onEnter(),
-      Map<Symbol, Function> keyCallbacks) {
+  void _updatePrompt(List<int> bytes, {onEnter(), onTab(),
+      Map<Symbol, Function> keyCallbacks}) {
     if (_equalList(bytes, _keys[#enter])) onEnter();
+    else if (_equalList(bytes, _keys[#tab])) onTab();
     else if (_keys.values.any((k) => _equalList(k, bytes))) {
       keyCallbacks[_keys.keys.firstWhere((s) => _equalList(_keys[s], bytes))]();
       _render();
@@ -111,7 +121,7 @@ class TerminalInputDevice implements InputDevice {
     Console.moveToColumn(InputDevice.prompt.plain.length + 1 + _prompt.cursor);
   }
 
-  Future close() {
+  Future close() async {
     stdin.echoMode = true;
     stdin.lineMode = true;
     return _stdinSubscription.cancel();
@@ -123,9 +133,5 @@ class TerminalInputDevice implements InputDevice {
 
   void _write(String chars) {
     _writeOutput(new Output(chars));
-  }
-
-  void _writeln(String line) {
-    _write('$line\n');
   }
 }

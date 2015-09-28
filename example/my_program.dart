@@ -2,8 +2,8 @@ import 'dart:io';
 import 'dart:async';
 import 'package:cupid/cupid.dart';
 
-//main(args) => new MyProgram().run(args.join(' '));
-main() => new Program(new Shell(new StdInputDevice(), new StdOutputDevice())).run();
+main(args) => new MyProgram().run(args.join(' '));
+//main() => new Program(new Shell(new StdInputDevice(), new StdOutputDevice())).run();
 
 class MyProgram extends Program {
   HttpServer server;
