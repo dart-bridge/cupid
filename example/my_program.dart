@@ -1,21 +1,27 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:cupid/cupid.dart';
 
-main(args) => new MyProgram(
-    new Shell(new StdInputDevice(), new StdOutputDevice())
-).run(args.join(' '));
+main(args) => new MyProgram().run(args.join(' '));
 
 class MyProgram extends Program {
   HttpServer server;
 
-  MyProgram([Shell shell]) : super(shell);
-
   setUp() {
-    this.addCommand(externalCommand);
+    this.print('<green>Setting up</green>');
+    addCommand(externalCommand);
   }
 
   tearDown() async {
+    this.print('<green>Tearing down</green>');
     await stop();
+  }
+
+  @Command('Asynchronous command')
+  async() async {
+    this.print('<yellow><underline>Begin</underline></yellow>');
+    await new Future.delayed(const Duration(seconds: 2));
+    this.print('<yellow><underline>End</underline></yellow>');
   }
 
   @Command('Start the server')

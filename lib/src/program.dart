@@ -7,7 +7,17 @@ class Program {
   final Map<Symbol, Invoker> _commands = {};
 
   Program([Shell shell])
-      : _shell = shell ?? new Shell();
+      : _shell = shell ?? new Shell() {
+    _setUpNativeCommands();
+  }
+
+  void _setUpNativeCommands() {
+    reflect(this).type.instanceMembers.values
+        .where((m) => m.metadata.any((i) => i.reflectee is Command))
+        .forEach((MethodMirror m) => addCommand(reflect(this)
+        .getField(m.simpleName)
+        .reflectee));
+  }
 
   Future run([String bootArguments]) async {
     await setUp();
@@ -20,11 +30,18 @@ class Program {
   }
 
   Future<Output> execute(Input input) async {
-    final returnValue = await _commands[input.command]
-    (input.positionalArguments, input.namedArguments);
-    if (returnValue == null)
-      return null;
-    return new Output('$returnValue');
+    if (!_commands.containsKey(input.command))
+      throw new UnknownCommandException(input);
+    final command = _commands[input.command];
+    try {
+      final returnValue = await command(
+          input.positionalArguments, input.namedArguments);
+      if (returnValue == null)
+        return null;
+      return new Output('$returnValue');
+    } on NoSuchMethodError {
+      throw new CommandMismatchException(input);
+    }
   }
 
   Stream<Output> executeAll(Iterable<Input> inputs) async* {
@@ -39,7 +56,9 @@ class Program {
   void addCommand(command) {
     ClosureMirror method = reflect(command);
     _commands[method.function.simpleName] =
-        (p, n) => method.apply(p, n).reflectee;
+        (p, n) => method
+        .apply(p, n)
+        .reflectee;
   }
 
   Future ask(Question question) async {
@@ -65,4 +84,32 @@ class Program {
     _shell.stop();
     await tearDown();
   }
+
+  @Command('Show help screen')
+  help() {
+    _commands.keys.forEach(print);
+  }
+}
+
+class InputException implements Exception {
+  final Input input;
+
+  InputException(Input this.input);
+
+  toString() => 'InputException: Invalid input [$input]';
+}
+
+class UnknownCommandException extends InputException {
+  UnknownCommandException(Input input) : super(input);
+
+  toString() =>
+      'UnknownCommandException: No such command [${MirrorSystem.getName(
+          input.command)}]';
+}
+
+class CommandMismatchException extends InputException {
+  CommandMismatchException(Input input) : super(input);
+
+  toString() =>
+      'CommandMismatchException: [$input] did not match command signature';
 }
