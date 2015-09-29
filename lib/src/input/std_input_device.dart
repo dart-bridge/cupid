@@ -8,7 +8,7 @@ class StdInputDevice extends InputDevice {
     final c = new StreamController<String>.broadcast();
     _stdin = c.stream.asBroadcastStream();
     _stdinSubscription = stdin.listen((b) {
-      c.add(UTF8.decode(b).trim());
+      c.add(UTF8.decode(b, allowMalformed: true).trim());
     });
   }
 
