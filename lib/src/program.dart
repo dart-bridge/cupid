@@ -114,6 +114,39 @@ class Program {
 
   void printAccomplishment(anything) => print('<green>$anything</green>');
 
+  void printTable(List<List> table, {int padding: 2}) {
+    print(renderTable(table, padding: padding));
+  }
+
+  String renderTable(Iterable<List> table, {int padding: 2}) {
+    final List<int> columnWidths = table.map((row) {
+      return row.map((col) => (col is Output ? col.plain.length : '$col'
+          .length) + padding).toList();
+    }).reduce((Iterable<int> ait, Iterable<int> bit) sync* {
+      final a = ait.toList();
+      final b = bit.toList();
+      for (var i = 0; i < max(a.length, b.length); i++)
+        yield max(a[i], b[i]);
+    }).toList();
+    return table.map((Iterable rowit) {
+      List row = rowit.toList();
+      var output = '';
+      for (var i = 0; i < columnWidths.length; i++)
+        output += _padTableCell(row[i], columnWidths[i]);
+      return output.trimRight();
+    }).join('\n');
+  }
+
+  String _padTableCell(cell, int width) {
+    int shouldPad;
+    if (cell is Output)
+      shouldPad = width - cell.plain.length;
+    else
+      shouldPad = width - '$cell'.length;
+    String output = cell is Output ? cell._markup : '$cell';
+    return output + (' ' * shouldPad);
+  }
+
   // Built in commands
   @Command('Exit the program')
   Future exit() async {
@@ -123,7 +156,7 @@ class Program {
 
   @Command('Show help screen')
   help([@Option('Search for help') String term]) {
-    if (term == null)
+    if (term == null || term == '')
       _helpAll();
     else if (_commands.keys.any((s) => MirrorSystem.getName(s) == term))
       _helpCommand(term);
@@ -133,18 +166,27 @@ class Program {
 
   void _helpAll() {
     print('''
+
 <underline><yellow>Available commands:</yellow></underline>
 
-${_commandDeclarations.map(_describeCommand).map((f) => '  $f').join('\n')}
-    '''.trim() + '\n');
+${renderTable(_commandDeclarations.map(_describeCommand))}
+''');
   }
 
-  String _describeCommand(MethodMirror command) {
+  List<Output> _describeCommand(MethodMirror command) {
     final List<String> parts = [];
-    parts.add('<yellow>${MirrorSystem.getName(command.simpleName)}</yellow>');
+    parts.add('<yellow>  ${MirrorSystem.getName(command.simpleName)}</yellow>');
+    parts.add(_usage(command));
+    parts.add('<gray>${(command.metadata
+        .firstWhere((i) => i.reflectee is Command)
+        .reflectee as Command).description}</gray>');
+    return parts.map((s) => new Output(s));
+  }
+
+  String _usage(MethodMirror command) {
     if (command.parameters.isNotEmpty)
-      parts.add(command.parameters.map(_describePositional).join(' '));
-    return parts.join(' ');
+      return command.parameters.map(_describePositional).join(' ');
+    return '';
   }
 
   String _describePositional(ParameterMirror param) {
@@ -159,14 +201,48 @@ ${_commandDeclarations.map(_describeCommand).map((f) => '  $f').join('\n')}
   }
 
   void _helpCommand(String command) {
-    _narrow(command);
+    final mirror = _commandDeclarations
+        .firstWhere((m) => MirrorSystem.getName(m.simpleName) == command);
+    final Command annotation = mirror.metadata
+        .firstWhere((i) => i.reflectee is Command)
+        .reflectee;
+    final usage = _usage(mirror);
+    print('''
+
+<yellow><underline>$command</underline> command</yellow>
+<cyan>${annotation.description}</cyan>
+
+<gray><underline>Usage:</underline></gray> <red>$command</red> $usage
+${mirror.parameters.any((p) => !p.isNamed) ? '''
+
+<gray><underline>Arguments:</underline></gray>
+${renderTable(_describePositionalArguments(mirror))}
+''' : ''}${mirror.parameters.any((p) => p.isNamed) ? '''
+
+<gray><underline>Flags:</underline></gray>
+${renderTable(_describeNamedArguments(mirror))}
+''' : ''}''');
+  }
+
+  Iterable<List<Output>> _describePositionalArguments(MethodMirror mirror) {
+    return mirror.parameters.where((p) => !p.isNamed).map(_describeArgument);
+  }
+
+  Iterable<List<Output>> _describeNamedArguments(MethodMirror mirror) {
+    return mirror.parameters.where((p) => p.isNamed).map(_describeArgument);
+  }
+
+  List<Output> _describeArgument(ParameterMirror element) {
+    final parts = <Output>[];
+    parts.add(new Output('<red>${MirrorSystem
+        .getName(element.simpleName)}</red>'));
+    return parts;
   }
 
   void _narrow(String term) {
-    print(_commandDeclarations
+    printTable(_commandDeclarations
         .where((m) => MirrorSystem.getName(m.simpleName).startsWith(term))
-        .map(_describeCommand)
-        .join('\n'));
+        .map(_describeCommand));
   }
 
   @Command('Exit and restart the program')
