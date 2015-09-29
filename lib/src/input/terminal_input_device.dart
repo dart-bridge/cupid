@@ -8,6 +8,7 @@ const Map<Symbol, List<int>> _keys = const {
   #enter: const [10],
   #backspace: const [127],
   #tab: const [9],
+  #ctrlX: const [24],
   #delete: const [27, 91, 51, 126],
 };
 
@@ -41,6 +42,10 @@ class TerminalInputDevice implements InputDevice {
             c.add('help ${_prompt._content
                 .split(' ')
                 .first}'.trim());
+          },
+          onCtrlX: () {
+            _write('\n');
+            c.add('exit');
           },
           keyCallbacks: {
             #up: _onUp,
@@ -77,10 +82,11 @@ class TerminalInputDevice implements InputDevice {
     _prompt.forwardspace();
   }
 
-  void _updatePrompt(List<int> bytes, {onEnter(), onTab(),
+  void _updatePrompt(List<int> bytes, {onEnter(), onTab(), onCtrlX(),
       Map<Symbol, Function> keyCallbacks}) {
     if (_equalList(bytes, _keys[#enter])) onEnter();
     else if (_equalList(bytes, _keys[#tab])) onTab();
+    else if (_equalList(bytes, _keys[#ctrlX])) onCtrlX();
     else if (_keys.values.any((k) => _equalList(k, bytes))) {
       keyCallbacks[_keys.keys.firstWhere((s) => _equalList(_keys[s], bytes))]();
       _render();
