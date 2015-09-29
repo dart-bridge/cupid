@@ -28,7 +28,7 @@ class Program {
           .where((a) => a.trim() != '')
           .map((a) => new Input(a.trim())))
           .forEach((o) => o != null ? _shell._outputDevice.output : null);
-    return _shell.run(execute);
+    return _shell.run(execute, this._tabCompletion);
   }
 
   Future<Output> execute(Input input) async {
@@ -89,7 +89,16 @@ class Program {
   }
 
   Future ask(Question question) async {
-
+    print('\n<underline><yellow>${question.sentence}</yellow></underline>');
+    final input = await _shell._inputDevice.rawInput();
+    print('');
+    try {
+      question.validate(input);
+    } catch (e) {
+      printDanger(e.toString());
+      return ask(question);
+    }
+    return input;
   }
 
   void print(anything) {
@@ -150,6 +159,7 @@ ${_commandDeclarations.map(_describeCommand).map((f) => '  $f').join('\n')}
   }
 
   void _helpCommand(String command) {
+    _narrow(command);
   }
 
   void _narrow(String term) {
@@ -172,6 +182,59 @@ ${_commandDeclarations.map(_describeCommand).map((f) => '  $f').join('\n')}
         onExit: port.sendPort);
     await port.first;
     await _shell.stop();
+  }
+
+  String _tabCompletion(String input) {
+    if (input.contains(' ')) return input;
+    if (input == '' || _hasCommand(input)) {
+      print('');
+      help(input);
+      return input;
+    }
+    if (_matchesSingleCommand(input)) {
+      print('');
+      final completed = _matchingCommands(input).first;
+      help(completed);
+      return completed;
+    }
+    if (_matchesMultipleCommnds(input)) {
+      print('');
+      help(input);
+      return _commonBeginning(input);
+    }
+    return input;
+  }
+
+  bool _hasCommand(String input) {
+    return _commands.keys.any((s) => MirrorSystem.getName(s) == input);
+  }
+
+  bool _matchesSingleCommand(String input) {
+    return _matchingCommands(input).length == 1;
+  }
+
+  Iterable<String> _matchingCommands(String input) {
+    return _commands.keys
+        .map(MirrorSystem.getName)
+        .where((String n) => n.startsWith(input));
+  }
+
+  bool _matchesMultipleCommnds(String input) {
+    return _matchingCommands(input).length > 1;
+  }
+
+  String _commonBeginning(String input) {
+    return _matchingCommands(input).reduce((a, b) => _commonBeginningOf(a, b));
+  }
+
+  String _commonBeginningOf(String a, String b) {
+    var aggregate = '';
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] == b[i])
+        aggregate += a[i];
+      else return aggregate;
+    }
+    return aggregate;
   }
 }
 

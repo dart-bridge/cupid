@@ -1,6 +1,6 @@
 part of cupid;
 
-class StdInputDevice implements InputDevice {
+class StdInputDevice extends InputDevice {
   Stream<String> _stdin;
   StreamSubscription _stdinSubscription;
 
@@ -12,7 +12,7 @@ class StdInputDevice implements InputDevice {
     });
   }
 
-  Future<Input> nextInput() async {
+  Future<Input> nextInput(_) async {
     stdout.write(InputDevice.prompt.plain);
     try {
       return new Input(await _stdin.first);
@@ -23,5 +23,9 @@ class StdInputDevice implements InputDevice {
 
   Future close() {
     return _stdinSubscription.cancel();
+  }
+
+  Future rawInput() async {
+    return inferType(await _stdin.first);
   }
 }

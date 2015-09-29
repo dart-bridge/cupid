@@ -25,6 +25,11 @@ class MyProgram extends Program {
     this.print('<yellow><underline>End</underline></yellow>');
   }
 
+  @Command('A command that throws an exception')
+  willThrow() {
+    throw new Exception('This is an exception!');
+  }
+
   @Command('Start the server')
   start({
   @Option('The port to run the server on') String host: 'localhost',

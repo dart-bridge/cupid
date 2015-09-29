@@ -18,21 +18,22 @@ class Shell {
     return stdout.hasTerminal && !Platform.isWindows;
   }
 
-  Future run(Future<Output> runner(Input input)) async {
+  Future run(Future<Output> runner(Input input),
+      String tabCompletion(String input)) async {
     await _inputDevice.open();
-    _runShell(runner);
+    _runShell(runner, tabCompletion);
     await _programCompleter.future;
   }
 
-  Future _runShell(Future<Output> runner(Input input)) async {
+  Future _runShell(Future<Output> runner(Input input), String tabCompletion(String input)) async {
     // Get the next input from the input device (command prompt)
-    final input = await _inputDevice.nextInput();
+    final input = await _inputDevice.nextInput(tabCompletion);
 
     // If the input is not null (empty command), run the input
     if (input != null) await _runInput(runner, input);
 
     // If exit hasn't been issued, repeat
-    if (!_programCompleter.isCompleted) return _runShell(runner);
+    if (!_programCompleter.isCompleted) return _runShell(runner, tabCompletion);
   }
 
   Future _runInput(Future<Output> runner(Input input), Input input) async {

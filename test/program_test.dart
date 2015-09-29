@@ -62,18 +62,20 @@ class ProgramTest implements TestCase {
   }
 }
 
-class MockInputDevice implements InputDevice {
+class MockInputDevice extends InputDevice {
   List<String> willReturn = [];
 
   Future open() async {}
 
   Future close() async {}
 
-  Future<Input> nextInput() async {
+  Future<Input> nextInput(_) async {
     if (willReturn.isNotEmpty)
       return new Input(willReturn.removeAt(0));
     return new Input('exit');
   }
+
+  Future rawInput() async {}
 }
 
 class MockOutputDevice implements OutputDevice {

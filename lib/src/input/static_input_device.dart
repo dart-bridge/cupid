@@ -1,11 +1,11 @@
 part of cupid;
 
-class StaticInputDevice implements InputDevice {
+class StaticInputDevice extends InputDevice {
   final List<String> _inputs;
 
   StaticInputDevice(List<String> this._inputs);
 
-  Future<Input> nextInput() async {
+  Future<Input> nextInput(_) async {
     if (_inputs.length > 0)
       return new Input(_inputs.removeAt(0));
     return new Input('exit');
@@ -14,4 +14,8 @@ class StaticInputDevice implements InputDevice {
   Future close() async {}
 
   Future open() async {}
+
+  Future rawInput() async {
+    return '';
+  }
 }

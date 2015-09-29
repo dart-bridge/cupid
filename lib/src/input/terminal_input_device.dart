@@ -1,5 +1,7 @@
 part of cupid;
 
+typedef String TabCompletion(String input);
+
 const Map<Symbol, List<int>> _keys = const {
   #up: const [27, 91, 65],
   #left: const [27, 91, 68],
@@ -12,11 +14,12 @@ const Map<Symbol, List<int>> _keys = const {
   #delete: const [27, 91, 51, 126],
 };
 
-class TerminalInputDevice implements InputDevice {
+class TerminalInputDevice extends InputDevice {
   Stream<String> _stdin;
   StreamSubscription _stdinSubscription;
   TerminalPrompt _prompt;
   bool _open = false;
+  TabCompletion _tabCompletion;
 
   Future open() async {
     File historyFile = new File('.cupid_history');
@@ -37,18 +40,13 @@ class TerminalInputDevice implements InputDevice {
             _write('\n');
             c.add(_prompt.flush());
           },
-          onTab: () {
-            _write('\n');
-            c.add('help ${_prompt._content
-                .split(' ')
-                .first}'.trim());
-          },
           onCtrlX: () {
             _write('\n');
             c.add('exit');
           },
           keyCallbacks: {
             #up: _onUp,
+            #tab: _onTab,
             #left: _onLeft,
             #right: _onRight,
             #down: _onDown,
@@ -56,6 +54,12 @@ class TerminalInputDevice implements InputDevice {
             #delete: _onDelete,
           });
     });
+  }
+
+  void _onTab() {
+    if (_tabCompletion == null) return;
+    _prompt._content = _tabCompletion(_prompt._content);
+    _prompt.cursor = _prompt._content.length;
   }
 
   void _onUp() {
@@ -82,10 +86,9 @@ class TerminalInputDevice implements InputDevice {
     _prompt.forwardspace();
   }
 
-  void _updatePrompt(List<int> bytes, {onEnter(), onTab(), onCtrlX(),
+  void _updatePrompt(List<int> bytes, {onEnter(), onCtrlX(),
       Map<Symbol, Function> keyCallbacks}) {
     if (_equalList(bytes, _keys[#enter])) onEnter();
-    else if (_equalList(bytes, _keys[#tab])) onTab();
     else if (_equalList(bytes, _keys[#ctrlX])) onCtrlX();
     else if (_keys.values.any((k) => _equalList(k, bytes))) {
       keyCallbacks[_keys.keys.firstWhere((s) => _equalList(_keys[s], bytes))]();
@@ -105,8 +108,9 @@ class TerminalInputDevice implements InputDevice {
     return true;
   }
 
-  Future<Input> nextInput() async {
+  Future<Input> nextInput(String tabCompletion(String input)) async {
     _open = true;
+    _tabCompletion = tabCompletion;
     _render();
     Input returnValue;
     try {
@@ -139,5 +143,12 @@ class TerminalInputDevice implements InputDevice {
 
   void _write(String chars) {
     _writeOutput(new Output(chars));
+  }
+
+  Future rawInput() async {
+    _prompt._highlightRaw = true;
+    final returnValue = inferType((await nextInput(null)).toString());
+    _prompt._highlightRaw = false;
+    return returnValue;
   }
 }

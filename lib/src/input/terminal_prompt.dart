@@ -6,6 +6,7 @@ class TerminalPrompt {
   final IOSink _historyFile;
   List<String> _workingHistory;
   int _historyCursor = 0;
+  bool _highlightRaw = false;
 
   TerminalPrompt(List<String> history, [IOSink this._historyFile])
   : _history = []..addAll(history.reversed),
@@ -16,6 +17,7 @@ class TerminalPrompt {
   set _content(String value) => _workingHistory[_historyCursor] = value;
 
   Output get output {
+    if (_highlightRaw) return new Output('<cyan>$_content</cyan>');
     if (_content.startsWith(':'))
       return new Output('<gray>:</gray>${_content.substring(1)}');
     final content = _content
