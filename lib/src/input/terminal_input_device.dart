@@ -21,7 +21,7 @@ class TerminalInputDevice extends InputDevice {
   TabCompletion _tabCompletion;
   StreamSubscription _stdinBroadcastSubscription;
 
-  Future open() async {
+  Future open(Stream<List<int>> stdinBroadcast) async {
     File historyFile = new File('.cupid_history');
     if (!await historyFile.exists())
       await historyFile.writeAsString('');
@@ -107,8 +107,6 @@ class TerminalInputDevice extends InputDevice {
   }
 
   Future<Input> nextInput(String tabCompletion(String input)) async {
-    stdinBroadcast.echoMode = false;
-    stdinBroadcast.lineMode = false;
     _open = true;
     _tabCompletion = tabCompletion;
     _render();
@@ -119,8 +117,6 @@ class TerminalInputDevice extends InputDevice {
       returnValue = null;
     }
     _open = false;
-    stdinBroadcast.echoMode = true;
-    stdinBroadcast.lineMode = true;
     return returnValue;
   }
 

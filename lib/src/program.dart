@@ -6,6 +6,7 @@ class Program {
   final Shell _shell;
   final Map<Symbol, Invoker> _commands = {};
   final List<MethodMirror> _commandDeclarations = [];
+  SendPort _reloadPort;
 
   Program([Shell shell])
       : _shell = shell ?? new Shell() {
@@ -20,7 +21,11 @@ class Program {
         .reflectee));
   }
 
-  Future run([String bootArguments]) async {
+  Future run({String bootArguments,
+  Stream<List<int>> stdinBroadcast,
+  SendPort reloadPort}) async {
+    stdinBroadcast ??= stdin;
+    _reloadPort = reloadPort;
     await setUp();
     if (bootArguments != null)
       await executeAll(bootArguments
@@ -28,7 +33,7 @@ class Program {
           .where((a) => a.trim() != '')
           .map((a) => new Input(a.trim())))
           .forEach((o) => o != null ? _shell._outputDevice.output : null);
-    return _shell.run(execute, this._tabCompletion);
+    return _shell.run(execute, this._tabCompletion, stdinBroadcast);
   }
 
   Future<Output> execute(Input input) async {
@@ -152,7 +157,6 @@ class Program {
   Future exit() async {
     await _shell.stop();
     await tearDown();
-    await stdinBroadcast.cancel();
   }
 
   @Command('Show help screen')
@@ -249,18 +253,12 @@ ${renderTable(_describeNamedArguments(mirror))}
   @Command('Exit and restart the program')
   Future reload([@Option(
       'Boot arguments for the new instance') List<String> arguments]) async {
-    await _shell.stop();
-    await tearDown();
-    final args = arguments ?? [];
-    final port = new ReceivePort();
-    await Isolate.spawnUri(
-        Platform.script,
-        args,
-        null,
-        onExit: port.sendPort);
-    await port.first;
-    await stdinBroadcast.cancel();
-    port.close();
+    if (_reloadPort == null)
+      throw new Exception('Can only use the reload command if the program '
+          'initialized with the [cupid] function!');
+
+    _reloadPort.send(true);
+    await exit();
   }
 
   String _tabCompletion(String input) {

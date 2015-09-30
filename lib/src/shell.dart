@@ -18,9 +18,11 @@ class Shell {
     return stdout.hasTerminal && !Platform.isWindows;
   }
 
-  Future run(Future<Output> runner(Input input),
-      String tabCompletion(String input)) async {
-    await _inputDevice.open();
+  Future run(
+      Future<Output> runner(Input input),
+      String tabCompletion(String input),
+      Stream<List<int>> stdinBroadcast) async {
+    await _inputDevice.open(stdinBroadcast);
     _runShell(runner, tabCompletion);
     await _programCompleter.future;
   }

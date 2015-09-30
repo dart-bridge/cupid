@@ -13,7 +13,7 @@ class StaticInputDevice extends InputDevice {
 
   Future close() async {}
 
-  Future open() async {}
+  Future open(_) async {}
 
   Future rawInput() async {
     return '';

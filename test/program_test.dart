@@ -65,7 +65,7 @@ class ProgramTest implements TestCase {
 class MockInputDevice extends InputDevice {
   List<String> willReturn = [];
 
-  Future open() async {}
+  Future open(_) async {}
 
   Future close() async {}
 

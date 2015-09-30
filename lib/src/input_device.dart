@@ -5,7 +5,7 @@ abstract class InputDevice {
 
   InputDevice();
 
-  Future open();
+  Future open(Stream<List<int>> stdinBroadcast);
 
   Future<Input> nextInput(String tabCompletion(String input));
 

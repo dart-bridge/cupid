@@ -4,7 +4,7 @@ class StdInputDevice extends InputDevice {
   Stream<String> _stdin;
   StreamSubscription _stdinSubscription;
 
-  Future open() async {
+  Future open(Stream<List<int>> stdinBroadcast) async {
     final c = new StreamController<String>.broadcast();
     _stdin = c.stream.asBroadcastStream();
     _stdinSubscription = stdinBroadcast.listen((b) {
