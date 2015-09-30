@@ -9,6 +9,7 @@ import 'dart:isolate';
 
 import 'src/input/stdin_broadcast.dart';
 import 'package:console/console.dart';
+import 'package:stack_trace/stack_trace.dart';
 
 part 'src/shell.dart';
 

@@ -6,7 +6,7 @@
 import 'dart:io';
 import 'package:cupid/cupid.dart';
 
-main(args) => new MyProgram().run(args.join(' '));
+main(_, __) => cupid(new MyProgram(), _, __);
 
 class MyProgram extends Program {
   HttpServer server;

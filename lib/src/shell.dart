@@ -18,8 +18,7 @@ class Shell {
     return stdout.hasTerminal && !Platform.isWindows;
   }
 
-  Future run(
-      Iterable<Input> initialCommands,
+  Future run(Iterable<Input> initialCommands,
       Future<Output> runner(Input input),
       String tabCompletion(String input),
       Stream<List<int>> stdinBroadcast) async {
@@ -30,7 +29,8 @@ class Shell {
     await _programCompleter.future;
   }
 
-  Future _runShell(Future<Output> runner(Input input), String tabCompletion(String input)) async {
+  Future _runShell(Future<Output> runner(Input input),
+      String tabCompletion(String input)) async {
     // Get the next input from the input device (command prompt)
     final input = await _inputDevice.nextInput(tabCompletion);
 
@@ -51,17 +51,25 @@ class Shell {
 
   Future _runZoned(body()) async {
     final completer = new Completer();
-    runZoned(() async {
+    Chain.capture(() async {
       final returnValue = await body();
       completer.complete(returnValue);
-    }, onError: (e, s) {
-      completer.complete(_onThrow(e, s));
-    });
+    }, onError: (e, c) => completer.complete(_onThrow(e, c)));
     return completer.future;
   }
 
-  Output _onThrow(Exception exception, StackTrace stack) {
-    return new Output('<red>$exception</red>\n');
+  Output _onThrow(exception, Chain chain) {
+    final stack = chain.terse.toString()
+        .replaceAll(new RegExp(r'.*Program\.execute[^]*'),
+        '===== program started ============================\n')
+        .replaceAllMapped(new RegExp('^((dart:|===).*)', multiLine: true),
+        (m) => '<gray>${m[0]}<yellow>')
+        .replaceAllMapped(new RegExp('^(package:.*)', multiLine: true),
+        (m) => '<red>${m[0]}<yellow>')
+        .split('\n').reversed.join('\n');
+    final message = '   ' + exception.toString().replaceAll('\n', '\n   ');
+    return new Output('<yellow>$stack</yellow>\n<red-background>'
+    '<white>\n\n$message\n</white></red-background>\n\n');
   }
 
   Future stop() async {
