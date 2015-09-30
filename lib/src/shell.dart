@@ -75,6 +75,7 @@ class Shell {
   Future stop() async {
     await _outputDevice.close();
     await _inputDevice.close();
-    _programCompleter.complete();
+    if (!_programCompleter.isCompleted)
+      _programCompleter.complete();
   }
 }
