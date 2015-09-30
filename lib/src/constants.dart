@@ -6,10 +6,16 @@ class Command {
 }
 
 class Option {
-  final Symbol name;
   final String description;
-  const Option(Symbol this.name,
-               String this.description);
+  final String match;
+  final String message;
+  const Option(String this.description,
+      {String this.match,
+      String this.message});
+
+  void validate(answer) {
+    return new _Validator(null, match, message).validate(answer);
+  }
 }
 
 class Question {
@@ -18,31 +24,11 @@ class Question {
   final String match;
   final String message;
   const Question(String this.sentence,
-                 {Type this.type,
-                 String this.match,
-                 String this.message});
+      {Type this.type,
+      String this.match,
+      String this.message});
 
   void validate(answer) {
-    if (type != null) _validateType(answer);
-    if (match != null) _validateExpression(answer);
-  }
-
-  void _validateType(Object answer) {
-    if (!_typeMatches(answer.runtimeType))
-      throw _messageOr('Input must be of type [$type]');
-  }
-
-  bool _typeMatches(Type shouldMatch) {
-    return reflectType(shouldMatch).isAssignableTo(reflectType(type));
-  }
-
-  void _validateExpression(String answer) {
-    if (!new RegExp(match).hasMatch(answer))
-      throw _messageOr('Input must match the following format: $match');
-  }
-
-  String _messageOr(String message) {
-    if (this.message != null) return this.message;
-    return message;
+    return new _Validator(type, match, message).validate(answer);
   }
 }

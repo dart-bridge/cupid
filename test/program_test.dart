@@ -5,120 +5,85 @@ import 'dart:async';
 
 class ProgramTest implements TestCase {
   Program program;
-  MockIoDevice io;
-  Shell shell;
+  MockInputDevice input;
+  MockOutputDevice output;
 
-  setUp() async {
-    io = new MockIoDevice();
-    shell = new Shell();
-    program = new Program(io: io, shell: shell);
-    io.program = program;
-    await program.init();
+  setUp() {
+    input = new MockInputDevice();
+    output = new MockOutputDevice();
+    program = new Program(new Shell(input, output));
   }
 
-  tearDown() {
+  tearDown() {}
+
+  @test
+  it_can_register_and_execute_a_command() async {
+    program.addCommand(mockCommand);
+
+    await program.execute(new Input('mockCommand'));
+
+    expect(output.log, contains('out\n'));
   }
 
   @test
-  it_pipes_the_output_of_a_command_to_an_output_dependency() async {
-    program.addCommand(command);
-    await program.execute(new Input(['command']));
-    expect(io.wasOutput, equals('output\n'));
+  it_maps_over_the_input_to_a_method_call() async {
+    program.addCommand(mockCommandWithArguments);
+
+    await program.execute(
+        new Input('mockCommandWithArguments x 1 '
+            '--third=1.2 --fourth="two words"'));
+
+    expect(output.log, contains('x, 1, 1.2, two words\n'));
   }
 
   @test
-  it_waits_for_input_then_runs_a_command() async {
-    program.addCommand(inputCommand);
-    io.willInput = new Input(['inputCommand', 'argument']);
-    await program.waitForInput();
-    expect(io.wasOutput, equals('Flag set: false\nArgument: argument\n'));
+  it_allows_a_command_to_receive_the_positional_arguments_as_a_list() async {
+    program.addCommand(mockCommandWithRest);
+
+    await program.execute(new Input('mockCommandWithRest a b c'));
+
+    expect(output.log, contains('3: [a, b, c]\n'));
   }
 
-  @test
-  it_can_be_run_to_always_wait_for_next_input_or_exit() async {
-    program.addCommand(command);
-    io.willInput = new Input(['command']);
-    await program.run();
-    expect(io.hasBeenCalledOnce, isTrue);
-    expect(io.wasOutput, equals('output\n'));
+  @Command('')
+  mockCommand() {
+    program.print('out');
   }
 
-  @test
-  it_can_display_a_help_screen() async {
-    program.addCommand(command);
-    program.addCommand(inputCommand);
-    await program.execute(new Input(['help']));
-    expect(io.wasOutput, equals('\n' + '''
-Available commands:
-
-  clear                           Clear the terminal screen
-  command                         Example command
-  exit                            Exit the program
-  help [command]                  See a list of all available commands
-  inputCommand argument [--flag]  Test input command
-  reload [arguments]              Restart the program
-  '''.trim() + '\n\n'));
+  @Command('')
+  mockCommandWithArguments(String first, int second,
+      {double third, String fourth}) {
+    program.print('$first, $second, $third, $fourth');
   }
 
-  @test
-  it_can_execute_shell_commands() async {
-    await program.execute(new Input([':echo', 'Hello']));
-    expect(io.wasOutput, equals('Hello\n'));
+  @Command('')
+  mockCommandWithRest(List<String> arguments) {
+    program.print('${arguments.length}: $arguments');
   }
 }
 
-class MockIoDevice implements IoDevice {
-  Input willInput;
-  String wasOutput = '';
-  bool hasBeenCalledOnce = false;
-  Program program;
+class MockInputDevice extends InputDevice {
+  List<String> willReturn = [];
 
-  Future input() async {
-    if (hasBeenCalledOnce) {
-      program.exit();
-    }
-    hasBeenCalledOnce = true;
-    return willInput;
+  Future open(_) async {}
+
+  Future close() async {}
+
+  Future<Input> nextInput(_) async {
+    if (willReturn.isNotEmpty)
+      return new Input(willReturn.removeAt(0));
+    return new Input('exit');
   }
 
-  void output(String output) {
-    wasOutput += output;
-  }
-
-  void outputInColor(String output) {
-    wasOutput += output.replaceAll(new RegExp(r'</?\w+>'), '');
-  }
-
-  void outputError(error, stack) {
-    throw error;
-  }
-
-  Future close() async {
-  }
-
-  Future<String> rawInput() {
-    return input();
-  }
-
-  void setPrompter(Function prompter) {
-  }
-
-  Future setUp() async {
-  }
-
-  Future abortInput() async {
-  }
+  Future rawInput() async {}
 }
 
-@Command('Example command')
-command() {
-  print('output');
-}
+class MockOutputDevice implements OutputDevice {
+  final List<String> log = [];
 
-@Command('Test input command')
-@Option(#argument, 'An argument')
-@Option(#flag, 'A flag')
-inputCommand(String argument, {bool flag}) {
-  print('Flag set: ${flag == true}');
-  print('Argument: $argument');
+  void output(Output output) {
+    log.add(output.plain);
+  }
+
+  Future close() async {}
 }

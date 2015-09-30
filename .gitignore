@@ -1,4 +1,5 @@
 .pub
+.packages
 packages
 .cupid_history
 cupid.log

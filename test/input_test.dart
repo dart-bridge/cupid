@@ -3,46 +3,59 @@ export 'package:testcase/init.dart';
 import 'package:cupid/cupid.dart';
 
 class InputTest implements TestCase {
-  setUp() {
-  }
+  setUp() {}
 
   tearDown() {}
 
   @test
-  it_is_constructed_with_a_list_of_strings() {
-    var input = new Input(['whatever']);
-    expect(input.command, equals(#whatever));
+  it_cannot_be_empty() {
+    expect(() => new Input(null), throws);
+    expect(() => new Input(''), throws);
   }
 
   @test
-  it_turns_string_arguments_to_positional_arguments() {
-    var input = new Input(['command', 'argument1', 'argument2']);
-    expect(input.positionalArguments, equals(['argument1', 'argument2']));
+  it_creates_a_command_from_an_input_string() {
+    expect(new Input('x').command, equals(#x));
   }
 
   @test
-  it_turns_numbers_into_their_correct_type() {
-    var input = new Input(['command', '1', '.3']);
-    expect(input.positionalArguments, equals([1, .3]));
+  it_creates_positional_arguments_from_subsequent_words() {
+    final input = new Input('x y z');
+
+    expect(input.command, equals(#x));
+    expect(input.positionalArguments, equals(['y', 'z']));
   }
 
   @test
-  it_turns_arguments_formatted_as_options_into_map_with_their_values() {
-    var input = new Input(['command', '--option=value', '--option2=42', '--flag']);
+  it_infers_types() {
+    final input = new Input('x abc 123 1.2 --f=2.3');
+
+    expect(input.command, equals(#x));
+    expect(input.positionalArguments, equals(['abc', 123, 1.2]));
+    expect(input.namedArguments, equals({#f: 2.3}));
+  }
+
+  @test
+  it_interprets_flags() {
+    final input = new Input('x -y');
+
     expect(input.positionalArguments, equals([]));
     expect(input.namedArguments, equals({
-      #option: 'value',
-      #option2: 42,
-      #flag: true,
+      #y: true
     }));
   }
 
   @test
-  it_can_take_values_with_spaces_if_a_quote_is_present() {
-    var input = new Input(['command', '''--option="value with ' and spaces"''', "--option2='value with spaces'"]);
+  it_integrates() {
+    final input = new Input(
+        'cmd --flag --other=100 --more="multiple words" pos 1.34');
+
+    expect(input.command, equals(#cmd));
+    expect(input.positionalArguments, equals(['pos', 1.34]));
     expect(input.namedArguments, equals({
-      #option: "value with ' and spaces",
-      #option2: 'value with spaces',
+      #flag: true,
+      #other: 100,
+      #more: 'multiple words'
     }));
   }
 }

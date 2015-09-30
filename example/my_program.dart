@@ -1,23 +1,40 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:cupid/cupid.dart';
 
-main() => new MyProgram().run();
+main(_, __) => cupid(new MyProgram(), _, __);
+//main(_, __) => cupid(new Program(new Shell(new StdInputDevice(), new StdOutputDevice())), _, __);
 
 class MyProgram extends Program {
   HttpServer server;
 
   setUp() {
-    this.addCommand(externalCommand);
+    this.print('<green>Setting up</green>');
+    addCommand(externalCommand);
   }
 
   tearDown() async {
+    this.print('<green>Tearing down</green>');
     await stop();
   }
 
+  @Command('Asynchronous command')
+  async() async {
+    this.print('<yellow><underline>Begin</underline></yellow>');
+    await new Future.delayed(const Duration(seconds: 2));
+    this.print('<yellow><underline>End</underline></yellow>');
+  }
+
+  @Command('A command that throws an exception')
+  willThrow() {
+    throw new Exception('This is an exception!');
+  }
+
   @Command('Start the server')
-  @Option(#port, 'The port to run the server on')
-  @Option(#host, 'The host to listen to')
-  start({String host: 'localhost', int port: 1337}) async {
+  start({
+  @Option('The port to run the server on') String host: 'localhost',
+  @Option('The host to listen to') int port: 1337
+  }) async {
     server = await HttpServer.bind(host, port);
     server.listen((r) => r.response.write('Response'));
     printInfo('Server is running on http://$host:$port');

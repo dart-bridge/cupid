@@ -1,196 +1,80 @@
 part of cupid;
 
-class InputException {
-  const InputException();
-}
-
-class NoSuchCommandException extends InputException {
-  final Symbol command;
-
-  const NoSuchCommandException(Symbol this.command);
-
-  String toString() {
-    return 'No such command: ${MirrorSystem.getName(command)}';
-  }
-}
-
-class InvalidInputException extends InputException {
-  final String message;
-
-  const InvalidInputException(String this.message);
-
-  String toString() {
-    return message;
-  }
-}
-
 class Shell {
-  Map<Symbol, InstanceMirror> _commands = <Symbol, dynamic>{};
+  final InputDevice _inputDevice;
+  final OutputDevice _outputDevice;
+  final Completer _programCompleter = new Completer();
 
-  void addCommand(command) {
-    var commandMirror = reflect(command);
-    _commands[_getSymbol(commandMirror)] = commandMirror;
+  Shell([InputDevice inputDevice, OutputDevice outputDevice])
+      :
+        _inputDevice = inputDevice != null ? inputDevice : _isCapable()
+            ? new TerminalInputDevice()
+            : new StdInputDevice(),
+        _outputDevice = outputDevice != null ? outputDevice : _isCapable()
+            ? new TerminalOutputDevice()
+            : new StdOutputDevice();
+
+  static bool _isCapable() {
+    return stdout.hasTerminal && !Platform.isWindows;
   }
 
-  Symbol _getSymbol(InstanceMirror command) {
-    if (command is ClosureMirror)
-      return command.function.simpleName;
-    return reflectType(command.reflectee).simpleName;
+  Future run(Iterable<Input> initialCommands,
+      Future<Output> runner(Input input),
+      String tabCompletion(String input),
+      Stream<List<int>> stdinBroadcast) async {
+    await _inputDevice.open(stdinBroadcast);
+    for (final command in initialCommands)
+      await _runInput(runner, command);
+    _runShell(runner, tabCompletion);
+    await _programCompleter.future;
   }
 
-  Future execute(Symbol command,
-                 [List positionalArguments = const [],
-                 Map<Symbol, dynamic> namedArguments = const {}]) {
+  Future _runShell(Future<Output> runner(Input input),
+      String tabCompletion(String input)) async {
+    // Get the next input from the input device (command prompt)
+    final input = await _inputDevice.nextInput(tabCompletion);
 
-    var commandMirror = _validInput(command, positionalArguments, namedArguments);
+    // If the input is not null (empty command), run the input
+    if (input != null) await _runInput(runner, input);
 
-    if (commandMirror is ClosureMirror)
-      return _executeFunction(
-          commandMirror,
-          _getPositional(positionalArguments, (commandMirror as ClosureMirror).function.parameters).toList(),
-          namedArguments);
-
-    ClassMirror classMirror = reflectType(commandMirror.reflectee);
-    return _executeClass(
-        classMirror,
-        _getPositional(positionalArguments, (classMirror.declarations[classMirror.simpleName] as MethodMirror).parameters).toList(),
-        namedArguments);
+    // If exit hasn't been issued, repeat
+    if (!_programCompleter.isCompleted) return _runShell(runner, tabCompletion);
   }
 
-  Iterable _getPositional(List positionalArguments, List<ParameterMirror> parameters) sync* {
-    positionalArguments = positionalArguments.toList();
-    for(var parameter in parameters) {
-      if (parameter.type.isAssignableTo(reflectType(Iterable))) {
-        yield positionalArguments.toList();
-        break;
-      } else if (positionalArguments.isEmpty && parameter.isOptional) {
-        break;
-      } else yield positionalArguments.removeAt(0);
-    }
+  Future _runInput(Future<Output> runner(Input input), Input input) async {
+    // Run the runner with the input zoned
+    final returnValue = await _runZoned(() => runner(input));
+
+    // If the output from the command is not null, send it to the output device
+    if (returnValue != null) _outputDevice.output(returnValue);
   }
 
-  InstanceMirror _validInput(Symbol command,
-                             List positionalArguments,
-                             Map<Symbol, dynamic> namedArguments) {
-    if (!_commands.containsKey(command)) throw new NoSuchCommandException(command);
-    var mirror = _commands[command];
-    _validateInput(_commandMethod(mirror), positionalArguments, namedArguments);
-    return mirror;
+  Future _runZoned(body()) async {
+    final completer = new Completer();
+    Chain.capture(() async {
+      final returnValue = await body();
+      completer.complete(returnValue);
+    }, onError: (e, c) => completer.complete(_onThrow(e, c)));
+    return completer.future;
   }
 
-  void _validateInput(MethodMirror commandMethod,
-                      List positionalArguments,
-                      Map<Symbol, dynamic> namedArguments) {
-    var positional = new List.from(positionalArguments);
-    var named = new Map.from(namedArguments);
-    for (var param in commandMethod.parameters) {
-      _validateParam(param, positional, named);
-    }
-    if (positional.length > 0)
-      throw new InvalidInputException('Too many arguments: ${positional.join(', ')}');
-    if (named.length > 0)
-      throw new InvalidInputException(
-          'Unknown option: ${MirrorSystem.getName(named.keys.elementAt(0))}');
+  Output _onThrow(exception, Chain chain) {
+    final stack = chain.terse.toString()
+        .replaceAll(new RegExp(r'.*Program\.execute[^]*'),
+        '===== program started ============================\n')
+        .replaceAllMapped(new RegExp('^((dart:|===).*)', multiLine: true),
+        (m) => '<gray>${m[0]}<yellow>')
+        .replaceAllMapped(new RegExp('^(package:.*)', multiLine: true),
+        (m) => '<red>${m[0]}<yellow>')
+        .split('\n').reversed.join('\n');
+    final message = '   ' + exception.toString().replaceAll('\n', '\n   ');
+    return new Output('<yellow>$stack</yellow>\n<red-background>'
+    '<white>\n\n$message\n</white></red-background>\n\n');
   }
 
-  void _validateParam(ParameterMirror parameter,
-                      List positionalArguments,
-                      Map<Symbol, dynamic> namedArguments) {
-    if (parameter.isNamed)
-      _validateParamValue(parameter, namedArguments.remove(parameter.simpleName));
-    else if (positionalArguments.length == 0) {
-      if (parameter.isOptional) return;
-      throw new InvalidInputException('Argument [${MirrorSystem.getName(parameter.simpleName)}] is required');
-    }
-    else {
-      var argument;
-      if (parameter.type.isAssignableTo(reflectType(Iterable))) {
-        argument = positionalArguments.toList();
-        positionalArguments.clear();
-      } else
-        argument = positionalArguments.removeAt(0);
-      _validateParamValue(parameter, argument);
-    }
-  }
-
-  void _validateParamValue(ParameterMirror parameter, Object value) {
-    var name = MirrorSystem.getName(parameter.simpleName);
-    if (value == null && !parameter.isOptional)
-      throw new InvalidInputException('Parameter [$name] is obligatory');
-    if (value != null && !reflectType(value.runtimeType).isAssignableTo(parameter.type))
-      throw new InvalidInputException(
-          'Parameter [$name] must be [${parameter.type.reflectedType}]');
-  }
-
-  Future _executeClass(ClassMirror classMirror, List positional, Map named) async {
-    return classMirror
-    .newInstance(const Symbol(''), positional, named)
-    .invoke(#execute, []).reflectee;
-  }
-
-  Future _executeFunction(ClosureMirror closureMirror, List positional, Map named) async {
-    return closureMirror.apply(positional, named).reflectee;
-  }
-
-  Future input(Input input) {
-    return execute(input.command, input.positionalArguments, input.namedArguments);
-  }
-
-  MethodMirror _commandMethod(InstanceMirror command) {
-    if (command is ClosureMirror) return command.function;
-    var classMirror = reflectClass(command.reflectee);
-    return classMirror.declarations[classMirror.simpleName] as MethodMirror;
-  }
-
-  List<InstanceMirror> _annotations(InstanceMirror command) {
-    if (command is ClosureMirror) return command.function.metadata;
-    return reflectType(command.reflectee).metadata;
-  }
-
-  Command _commandAnnotation(InstanceMirror command) {
-    var commands = _annotations(command).where((m) => m.reflectee is Command);
-    if (commands.length == 0) return const Command(null);
-    return commands.first.reflectee;
-  }
-
-  Iterable<Option> _optionAnnotations(InstanceMirror command) {
-    return _annotations(command)
-    .where((m) => m.reflectee is Option)
-    .map((m) => m.reflectee);
-  }
-
-  Option _option(InstanceMirror command, Symbol option) {
-    var options = _optionAnnotations(command).where((o) => o.name == option);
-    if (options.length == 0) return new Option(option, null);
-    return options.first;
-  }
-
-  String describeCommand(Symbol name) {
-    if (!_commands.containsKey(name)) return null;
-    return _commandAnnotation(_commands[name]).description;
-  }
-
-  String describeOption(Symbol command, Symbol option) {
-    if (!_commands.containsKey(command)) return null;
-    return _option(_commands[command], option).description;
-  }
-
-  ParameterMirror _parameter(InstanceMirror command, Symbol name) {
-    return _commandMethod(command).parameters
-    .firstWhere((p) => p.simpleName == name);
-  }
-
-  Type typeOfOption(Symbol command, Symbol option) {
-    if (!_commands.containsKey(command)) return dynamic;
-    var param = _parameter(_commands[command], option);
-    if (param == null) return null;
-    return param.type.reflectedType;
-  }
-
-  optionDefault(Symbol command, Symbol option) {
-    if (!_commands.containsKey(command)) return null;
-    var param = _parameter(_commands[command], option);
-    if (param == null) return null;
-    return (param.defaultValue == null) ? null : param.defaultValue.reflectee;
+  Future stop() async {
+    await _outputDevice.close();
+    await _inputDevice.close();
+    _programCompleter.complete();
   }
 }
