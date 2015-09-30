@@ -84,4 +84,6 @@ class MockOutputDevice implements OutputDevice {
   void output(Output output) {
     log.add(output.plain);
   }
+
+  Future close() async {}
 }

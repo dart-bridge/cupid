@@ -4,4 +4,6 @@ class TerminalOutputDevice implements OutputDevice {
   void output(Output output) {
     stdout.write(output.ansi);
   }
+
+  Future close() async {}
 }
