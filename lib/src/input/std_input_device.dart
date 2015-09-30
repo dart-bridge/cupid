@@ -22,7 +22,7 @@ class StdInputDevice extends InputDevice {
   }
 
   Future close() {
-    return _stdinSubscription.cancel();
+    return _stdinSubscription?.cancel();
   }
 
   Future rawInput() async {

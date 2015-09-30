@@ -130,7 +130,7 @@ class TerminalInputDevice extends InputDevice {
   }
 
   Future close() async {
-    return _stdinBroadcastSubscription.cancel();
+    return _stdinBroadcastSubscription?.cancel();
   }
 
   void _writeOutput(Output output) {
