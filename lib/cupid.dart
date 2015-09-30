@@ -58,6 +58,8 @@ Future _spawnChild(List<String> arguments) async {
   final reloadRequestReceiver = new ReceivePort();
   var shouldReload = false;
   reloadRequestReceiver.listen((List<String> args) async {
+    if (args is! List)
+      return shouldReload = false;
     shouldReload = true;
     arguments = await _mergeArguments(args, arguments);
   });
