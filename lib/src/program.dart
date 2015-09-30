@@ -152,6 +152,7 @@ class Program {
   Future exit() async {
     await _shell.stop();
     await tearDown();
+    await stdinBroadcast.cancel();
   }
 
   @Command('Show help screen')
@@ -191,7 +192,7 @@ ${renderTable(_commandDeclarations.map(_describeCommand))}
 
   String _describePositional(ParameterMirror param) {
     var description =
-    '<cyan>${MirrorSystem.getName(param.simpleName)}</cyan>='
+        '<cyan>${MirrorSystem.getName(param.simpleName)}</cyan>='
         '<gray>${param.type.reflectedType}';
     if (param.isNamed)
       description = '--$description';
@@ -248,6 +249,7 @@ ${renderTable(_describeNamedArguments(mirror))}
   @Command('Exit and restart the program')
   Future reload([@Option(
       'Boot arguments for the new instance') List<String> arguments]) async {
+    await _shell.stop();
     await tearDown();
     final args = arguments ?? [];
     final port = new ReceivePort();
@@ -257,7 +259,8 @@ ${renderTable(_describeNamedArguments(mirror))}
         null,
         onExit: port.sendPort);
     await port.first;
-    await _shell.stop();
+    await stdinBroadcast.cancel();
+    port.close();
   }
 
   String _tabCompletion(String input) {

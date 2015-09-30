@@ -2,11 +2,12 @@ library cupid;
 
 import 'dart:mirrors';
 import 'dart:async';
-import 'dart:io';
+import 'dart:io' hide stdin;
 import 'dart:math' show min, max;
-import 'dart:convert' show UTF8;
+import 'dart:convert' show Encoding, UTF8;
 import 'dart:isolate';
 
+import 'src/input/stdin_broadcast.dart';
 import 'package:console/console.dart';
 
 part 'src/shell.dart';

@@ -7,7 +7,7 @@ class StdInputDevice extends InputDevice {
   Future open() async {
     final c = new StreamController<String>.broadcast();
     _stdin = c.stream.asBroadcastStream();
-    _stdinSubscription = stdin.listen((b) {
+    _stdinSubscription = stdinBroadcast.listen((b) {
       c.add(UTF8.decode(b, allowMalformed: true).trim());
     });
   }

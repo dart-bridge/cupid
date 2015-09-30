@@ -16,10 +16,10 @@ const Map<Symbol, List<int>> _keys = const {
 
 class TerminalInputDevice extends InputDevice {
   Stream<String> _stdin;
-  StreamSubscription _stdinSubscription;
   TerminalPrompt _prompt;
   bool _open = false;
   TabCompletion _tabCompletion;
+  StreamSubscription _stdinBroadcastSubscription;
 
   Future open() async {
     File historyFile = new File('.cupid_history');
@@ -30,10 +30,8 @@ class TerminalInputDevice extends InputDevice {
         historyFile.openWrite(mode: FileMode.APPEND));
     Console.init();
     final c = new StreamController<String>.broadcast();
-    stdin.echoMode = false;
-    stdin.lineMode = false;
-    _stdin = c.stream.asBroadcastStream();
-    _stdinSubscription = stdin.listen((bytes) {
+    _stdin = c.stream;
+    _stdinBroadcastSubscription = stdinBroadcast.listen((bytes) {
       if (!_open) return;
       _updatePrompt(bytes,
           onEnter: () {
@@ -109,6 +107,8 @@ class TerminalInputDevice extends InputDevice {
   }
 
   Future<Input> nextInput(String tabCompletion(String input)) async {
+    stdinBroadcast.echoMode = false;
+    stdinBroadcast.lineMode = false;
     _open = true;
     _tabCompletion = tabCompletion;
     _render();
@@ -119,6 +119,8 @@ class TerminalInputDevice extends InputDevice {
       returnValue = null;
     }
     _open = false;
+    stdinBroadcast.echoMode = true;
+    stdinBroadcast.lineMode = true;
     return returnValue;
   }
 
@@ -132,9 +134,7 @@ class TerminalInputDevice extends InputDevice {
   }
 
   Future close() async {
-    stdin.echoMode = true;
-    stdin.lineMode = true;
-    return _stdinSubscription.cancel();
+    return _stdinBroadcastSubscription.cancel();
   }
 
   void _writeOutput(Output output) {
