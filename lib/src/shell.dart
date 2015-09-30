@@ -19,10 +19,13 @@ class Shell {
   }
 
   Future run(
+      Iterable<Input> initialCommands,
       Future<Output> runner(Input input),
       String tabCompletion(String input),
       Stream<List<int>> stdinBroadcast) async {
     await _inputDevice.open(stdinBroadcast);
+    for (final command in initialCommands)
+      await _runInput(runner, command);
     _runShell(runner, tabCompletion);
     await _programCompleter.future;
   }

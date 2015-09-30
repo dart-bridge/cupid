@@ -21,19 +21,16 @@ class Program {
         .reflectee));
   }
 
-  Future run({String bootArguments,
+  Future run({String bootArguments: '',
   Stream<List<int>> stdinBroadcast,
   SendPort reloadPort}) async {
     stdinBroadcast ??= stdin;
     _reloadPort = reloadPort;
     await setUp();
-    if (bootArguments != null)
-      await executeAll(bootArguments
-          .split(',')
-          .where((a) => a.trim() != '')
-          .map((a) => new Input(a.trim())))
-          .forEach((o) => o != null ? _shell._outputDevice.output : null);
-    return _shell.run(execute, this._tabCompletion, stdinBroadcast);
+    final initialCommands = bootArguments.split(',')
+        .where((a) => a.trim() != '')
+        .map((a) => new Input(a.trim()));
+    return _shell.run(initialCommands, execute, this._tabCompletion, stdinBroadcast);
   }
 
   Future<Output> execute(Input input) async {
@@ -48,7 +45,7 @@ class Program {
       if (returnValue == null)
         return null;
       return new Output('$returnValue');
-    } on NoSuchMethodError {
+    } on CommandMismatchException {
       throw new CommandMismatchException(input);
     }
   }
@@ -75,15 +72,39 @@ class Program {
     ClosureMirror method = reflect(command);
     if (_isRestMethod(method))
       _commands[method.function.simpleName] =
-          (p, n) => method
-          .apply([p], n)
-          .reflectee;
+          _createInvoker(method, rest: true);
     else
-      _commands[method.function.simpleName] =
-          (p, n) => method
-          .apply(p, n)
-          .reflectee;
+      _commands[method.function.simpleName] = _createInvoker(method);
     _commandDeclarations.add(method.function);
+  }
+
+  Invoker _createInvoker(ClosureMirror closure, {bool rest: false}) {
+    return (List positional, Map named) {
+      if (_canCall(closure.function, positional, named))
+        return closure
+            .apply(rest ? [positional] : positional, named)
+            .reflectee;
+      else throw new CommandMismatchException.placeholder();
+    };
+  }
+
+  bool _canCall(MethodMirror method, List positional, Map named) {
+    final List<ParameterMirror> allPositional = method.parameters
+        .where((p) => !p.isNamed).toList();
+    final int positionalMinLength = allPositional
+        .where((p) => !p.isOptional)
+        .length;
+    final int positionalMaxLength = allPositional.length;
+    final allNamed = method.parameters
+        .where((p) => p.isNamed);
+    final bool allNamedExist = named.keys.every((s) => allNamed.contains(s));
+    final bool positionalLengthIsOk =
+    (positional.length <= positionalMaxLength
+        && positional.length >= positionalMinLength)
+        || (allPositional.length == 1 && allPositional[0].type
+        .isSubtypeOf(reflectType(List)));
+
+    return allNamedExist && positionalLengthIsOk;
   }
 
   bool _isRestMethod(ClosureMirror method) {
@@ -124,6 +145,7 @@ class Program {
   }
 
   String renderTable(Iterable<List> table, {int padding: 2}) {
+    if (table.length == 0) return '';
     final List<int> columnWidths = table.map((row) {
       return row.map((col) => (col is Output ? col.plain.length : '$col'
           .length) + padding).toList();
@@ -257,7 +279,7 @@ ${renderTable(_describeNamedArguments(mirror))}
       throw new Exception('Can only use the reload command if the program '
           'initialized with the [cupid] function!');
 
-    _reloadPort.send(true);
+    _reloadPort.send(arguments);
     await exit();
   }
 
@@ -333,6 +355,8 @@ class UnknownCommandException extends InputException {
 
 class CommandMismatchException extends InputException {
   CommandMismatchException(Input input) : super(input);
+
+  CommandMismatchException.placeholder() : super(null);
 
   toString() =>
       'CommandMismatchException: [$input] did not match command signature';

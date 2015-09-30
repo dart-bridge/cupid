@@ -56,7 +56,10 @@ Future _masterCupid(List<String> arguments) async {
 Future _spawnChild(List<String> arguments) async {
   final reloadRequestReceiver = new ReceivePort();
   var shouldReload = false;
-  reloadRequestReceiver.listen((v) => shouldReload = v);
+  reloadRequestReceiver.listen((List<String> args) async {
+    shouldReload = true;
+    arguments = await _mergeArguments(args, arguments);
+  });
 
   final connector = new ReceivePort();
   connector.first.then((List ports) {
@@ -88,6 +91,14 @@ Future _spawnChild(List<String> arguments) async {
 
   if (shouldReload)
     return _spawnChild(arguments);
+}
+
+Future<List<String>> _mergeArguments(List<String> a, List<String> b) async {
+  final argumentString = a.join(' ') + ',' + b.join(' ');
+  var arguments = argumentString.split(',').map((s) => s.trim()).toList();
+  arguments.sort();
+  arguments = await new Stream.fromIterable(arguments).distinct().toList();
+  return arguments.join(',').split(' ');
 }
 
 Future _childCupid(Program program, String arguments,
