@@ -95,6 +95,8 @@ Future _spawnChild(List<String> arguments) async {
 }
 
 Future<List<String>> _mergeArguments(List<String> a, List<String> b) async {
+  a ??= [];
+  b ??= [];
   final argumentString = a.join(' ') + ',' + b.join(' ');
   var arguments = argumentString.split(',').map((s) => s.trim()).toList();
   arguments.sort();
