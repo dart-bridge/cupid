@@ -54,22 +54,30 @@ class Shell {
     Chain.capture(() async {
       final returnValue = await body();
       completer.complete(returnValue);
-    }, onError: (e, c) => completer.complete(_onThrow(e, c)));
+    }, onError: (e, c) {
+      final output = _onThrow(e, c);
+      if (completer.isCompleted)
+        return _outputDevice.output(output);
+      completer.complete(output);
+    });
     return completer.future;
   }
 
   Output _onThrow(exception, Chain chain) {
-    final stack = chain.terse.toString()
+    final stack = chain.terse
+        .toString()
         .replaceAll(new RegExp(r'.*Program\.execute[^]*'),
         '===== program started ============================\n')
         .replaceAllMapped(new RegExp('^((dart:|===).*)', multiLine: true),
         (m) => '<gray>${m[0]}<yellow>')
         .replaceAllMapped(new RegExp('^(package:.*)', multiLine: true),
         (m) => '<red>${m[0]}<yellow>')
-        .split('\n').reversed.join('\n');
+        .split('\n')
+        .reversed
+        .join('\n');
     final message = '   ' + exception.toString().replaceAll('\n', '\n   ');
     return new Output('<yellow>$stack</yellow>\n<red-background>'
-    '<white>\n\n$message\n</white></red-background>\n\n');
+        '<white>\n\n$message\n</white></red-background>\n\n');
   }
 
   Future stop() async {

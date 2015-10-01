@@ -9,8 +9,13 @@ class TerminalPrompt {
   bool _highlightRaw = false;
 
   TerminalPrompt(List<String> history, [IOSink this._historyFile])
-  : _history = []..addAll(history.reversed),
-    _workingHistory = []..addAll(history.reversed);
+      : _history = []..addAll(history.reversed),
+        _workingHistory = []..addAll(history.reversed) {
+    if (_history[0] != '') {
+      _history.insert(0, '');
+      _workingHistory.insert(0, '');
+    }
+  }
 
   String get _content => _workingHistory[_historyCursor];
 
@@ -44,10 +49,12 @@ class TerminalPrompt {
     _content = '';
     cursor = 0;
     _historyCursor = 0;
-    _history.insert(0, flushed);
-    _workingHistory = _history.toList()..insert(0, '');
-    if (flushed != '')
+    if (flushed != '') {
+      _history.insert(0, flushed);
+      _workingHistory = _history.toList()
+        ..insert(0, '');
       _historyFile?.writeln(flushed);
+    }
     return flushed;
   }
 
