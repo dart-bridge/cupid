@@ -29,6 +29,8 @@ part 'src/output_device.dart';
 
 part 'src/input/std_input_device.dart';
 
+part 'src/input/silent_input_device.dart';
+
 part 'src/input/static_input_device.dart';
 
 part 'src/input/terminal_input_device.dart';

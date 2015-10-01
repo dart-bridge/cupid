@@ -7,7 +7,7 @@ class FileOutputDevice implements OutputDevice {
       : _log = new File(file).openWrite(mode: APPEND);
 
   void output(Output output) {
-    _log.write(output.plain);
+    _log.write('\n\n[${new DateTime.now()}]\n${output.plain}');
   }
 
   Future close() {

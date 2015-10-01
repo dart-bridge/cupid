@@ -26,20 +26,26 @@ class Program {
 
   Future run({String bootArguments: '',
   Stream<List<int>> stdinBroadcast,
-  SendPort reloadPort}) async {
-    stdinBroadcast ??= stdin;
-    _reloadPort = reloadPort;
-    _settingUp = true;
-    await setUp();
-    _settingUp = false;
-    if (_shouldReloadAfterSetUp != null)
-      return reload(_shouldReloadAfterSetUp);
-    if (_shouldExitAfterSetUp)
-      return exit();
-    final initialCommands = bootArguments.split(',')
-        .where((a) => a.trim() != '')
-        .map((a) => new Input(a.trim()));
-    return _shell.run(initialCommands, execute, this._tabCompletion, stdinBroadcast);
+  SendPort reloadPort}) {
+    return runZoned(() async {
+      stdinBroadcast ??= stdin;
+      _reloadPort = reloadPort;
+      _settingUp = true;
+      await setUp();
+      _settingUp = false;
+      if (_shouldReloadAfterSetUp != null)
+        return reload(_shouldReloadAfterSetUp);
+      if (_shouldExitAfterSetUp)
+        return exit();
+      final initialCommands = bootArguments.split(',')
+          .where((a) => a.trim() != '')
+          .map((a) => new Input(a.trim()));
+      return _shell.run(
+          initialCommands, execute, this._tabCompletion, stdinBroadcast);
+    }, zoneSpecification: new ZoneSpecification(
+        print: (self, delegate, zone, line) {
+      _shell._outputDevice.output(new Output(line));
+    }));
   }
 
   Future<Output> execute(Input input) async {
@@ -230,7 +236,7 @@ ${renderTable(_commandDeclarations.map(_describeCommand))}
 
   String _describePositional(ParameterMirror param) {
     var description =
-        '<cyan>${MirrorSystem.getName(param.simpleName)}</cyan>='
+    '<cyan>${MirrorSystem.getName(param.simpleName)}</cyan>='
         '<gray>${param.type.reflectedType}';
     if (param.isNamed)
       description = '--$description';
