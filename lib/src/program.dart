@@ -7,6 +7,9 @@ class Program {
   final Map<Symbol, Invoker> _commands = {};
   final List<MethodMirror> _commandDeclarations = [];
   SendPort _reloadPort;
+  bool _settingUp = false;
+  List<String> _shouldReloadAfterSetUp;
+  bool _shouldExitAfterSetUp = false;
 
   Program([Shell shell])
       : _shell = shell ?? new Shell() {
@@ -26,7 +29,13 @@ class Program {
   SendPort reloadPort}) async {
     stdinBroadcast ??= stdin;
     _reloadPort = reloadPort;
+    _settingUp = true;
     await setUp();
+    _settingUp = false;
+    if (_shouldReloadAfterSetUp != null)
+      return reload(_shouldReloadAfterSetUp);
+    if (_shouldExitAfterSetUp)
+      return exit();
     final initialCommands = bootArguments.split(',')
         .where((a) => a.trim() != '')
         .map((a) => new Input(a.trim()));
@@ -177,6 +186,9 @@ class Program {
   // Built in commands
   @Command('Exit the program')
   Future exit() async {
+    if (_settingUp)
+      return _shouldExitAfterSetUp = true;
+
     await _shell.stop();
     await tearDown();
   }
@@ -278,6 +290,9 @@ ${renderTable(_describeNamedArguments(mirror))}
     if (_reloadPort == null)
       throw new Exception('Can only use the reload command if the program '
           'initialized with the [cupid] function!');
+
+    if (_settingUp)
+      return _shouldReloadAfterSetUp = arguments ?? [];
 
     _reloadPort.send(arguments);
     await exit();

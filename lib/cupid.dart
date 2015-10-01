@@ -121,8 +121,10 @@ Future _childCupid(Program program, String arguments,
 
   final Stream<List<int>> stdinBroadcast = stdinPort;
 
-  return program.run(
+  await program.run(
       bootArguments: arguments,
       stdinBroadcast: stdinBroadcast,
       reloadPort: reloadPort);
+
+  Isolate.current.kill();
 }
