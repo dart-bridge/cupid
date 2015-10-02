@@ -121,9 +121,17 @@ class TerminalInputDevice extends InputDevice {
   }
 
   void _render() {
+    _eraseLine();
+    _renderLine();
+  }
+
+  void _eraseLine() {
     Console.moveToColumn(Console.columns);
     Console.eraseLine(1);
     Console.moveToColumn(0);
+  }
+
+  void _renderLine() {
     _writeOutput(InputDevice.prompt);
     _writeOutput(_prompt.output);
     Console.moveToColumn(InputDevice.prompt.plain.length + 1 + _prompt.cursor);
@@ -146,5 +154,17 @@ class TerminalInputDevice extends InputDevice {
     final returnValue = inferType((await nextInput(null)).toString());
     _prompt._highlightRaw = false;
     return returnValue;
+  }
+
+  @override
+  void beforePrint() {
+    if (_open)
+      _eraseLine();
+  }
+
+  @override
+  void afterPrint() {
+    if (_open)
+      _renderLine();
   }
 }

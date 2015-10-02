@@ -44,8 +44,10 @@ class Program {
           initialCommands, execute, this._tabCompletion, stdinBroadcast);
     }, zoneSpecification: new ZoneSpecification(
         print: (self, delegate, zone, line) {
-      _shell._outputDevice.output(new Output(line));
-    }));
+          _shell._inputDevice.beforePrint();
+          _shell._outputDevice.output(new Output('$line\n'));
+          _shell._inputDevice.afterPrint();
+        }));
   }
 
   Future<Output> execute(Input input) async {

@@ -19,4 +19,8 @@ abstract class InputDevice {
 
     return element;
   }
+
+  void beforePrint() {}
+
+  void afterPrint() {}
 }
