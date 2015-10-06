@@ -14,6 +14,7 @@ class TerminalPrompt {
     if (_history[0] != '') {
       _history.insert(0, '');
       _workingHistory.insert(0, '');
+      _historyFile?.write('\n');
     }
   }
 
