@@ -40,8 +40,7 @@ class MyProgram extends Program {
     var ageQuestion = const Question('How old are you?', type: int);
     var nameQuestion = const Question(
         "What's your name?",
-        match: r'^[A-Z][a-z]+$',
-     
+        match: r'^[A-Z][a-z]+$');
 
     int age = await ask(ageQuestion);
     printInfo('Great! Now I know your age!');
