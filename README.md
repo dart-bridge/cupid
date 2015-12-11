@@ -20,9 +20,10 @@ class MyProgram extends Program {
   }
 
   @Command('Start the server')
-  start(
-  {@Option('The port to run the server on') String host: 'localhost', 
-  @Option('The host to listen to') int port: 1337}) async {
+  start({
+    @Option('The port to run the server on') String host: 'localhost', 
+    @Option('The host to listen to') int port: 1337
+  }) async {
     server = await HttpServer.bind(host, port);
     server.listen((r) => r.response.write('Response'));
     printInfo('Server is running on http://$host:$port');
