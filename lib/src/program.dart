@@ -112,8 +112,8 @@ class Program {
         .where((p) => !p.isOptional)
         .length;
     final int positionalMaxLength = allPositional.length;
-    final allNamed = method.parameters
-        .where((p) => p.isNamed);
+    final Iterable<Symbol> allNamed = method.parameters
+        .where((p) => p.isNamed).map((p) => p.simpleName);
     final bool allNamedExist = named.keys.every((s) => allNamed.contains(s));
     final bool positionalLengthIsOk =
     (positional.length <= positionalMaxLength
